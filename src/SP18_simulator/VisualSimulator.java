@@ -377,14 +377,14 @@ public class VisualSimulator extends JFrame{
 	 * 하나의 명령어만 수행할 것을 SicSimulator에 요청한다.
 	 */
 	public void oneStep(){
-		
+		sicSimulator.oneStep();
 	};
 
 	/**
 	 * 남아있는 모든 명령어를 수행할 것을 SicSimulator에 요청한다.
 	 */
 	public void allStep(){
-		
+		sicSimulator.allStep();
 	};
 	
 	/**

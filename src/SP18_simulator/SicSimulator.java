@@ -29,6 +29,7 @@ public class SicSimulator {
 	 */
 	public void load(File program) {
 		/* 메모리 초기화, 레지스터 초기화 등*/
+		rMgr.initializeResource();
 	}
 
 	/**
