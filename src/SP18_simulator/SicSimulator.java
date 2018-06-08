@@ -36,6 +36,15 @@ public class SicSimulator {
 	 * 1개의 instruction이 수행된 모습을 보인다. 
 	 */
 	public void oneStep() {
+		char [] xbpe = rMgr.getMemory(rMgr.register[8]+1, 2);
+		int format = 6;
+		if((xbpe[0] & 1) == 1)
+		{
+			format = 8;
+		}
+		
+		System.out.println(rMgr.getMemory(rMgr.register[8], format));
+		rMgr.register[8] += format/2;
 	}
 	
 	/**

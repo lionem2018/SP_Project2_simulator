@@ -88,6 +88,7 @@ public class VisualSimulator extends JFrame{
 				textFileName.setText(fileD.getFile());
 				File file = new File(filePath);
 				load(file);
+				update();
 			}
 		});
 		add(btnOpen);
@@ -334,6 +335,7 @@ public class VisualSimulator extends JFrame{
 			public void actionPerformed(ActionEvent e)
 			{
 				oneStep();
+				update();
 			}
 		});
 		add(btnRunOneStep);
@@ -345,6 +347,7 @@ public class VisualSimulator extends JFrame{
 			public void actionPerformed(ActionEvent e)
 			{
 				allStep();
+				update();
 			}
 		});
 		add(btnRunAll);

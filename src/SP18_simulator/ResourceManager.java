@@ -37,24 +37,25 @@ public class ResourceManager
 
 	SymbolTable symtabList = new SymbolTable();
 	// 이외에도 필요한 변수 선언해서 사용할 것.
+	int currentSection;
 	SymbolTable extabList = new SymbolTable();
 
 	private List<String> progNameList = new ArrayList<>();
 	private List<Integer> progLengthList = new ArrayList<>();
 	private List<Integer> progStartAddrList = new ArrayList<>();
-	
+
 	/**
 	 * 메모리, 레지스터등 가상 리소스들을 초기화한다.
 	 */
 	public void initializeResource()
 	{
-		for(int i = 0; i < memory.length; i++)
-			memory[i] = 'x';
-		
-		for(int i = 0; i < register.length; i++)
+		for (int i = 0; i < register.length; i++)
 			register[i] = 0;
-		
+
 		register_F = 0;
+
+		currentSection = 0;
+		register[8] = progStartAddrList.get(currentSection);
 	}
 
 	/**
@@ -103,11 +104,23 @@ public class ResourceManager
 		try
 		{
 			File file = new File(devName);
-			FileReader fileReader = new FileReader(file);///////////////////////////////// 입출력 어떻게 판별??
-
-			deviceManager.put(devName, fileReader);
+			if (devName.equals("F1"))
+			{
+				FileReader fileReader = new FileReader(file);
+				deviceManager.put(devName, fileReader);
+			}
+			else if (devName.equals("05"))
+			{
+				FileWriter fileWriter = new FileWriter(file, true);
+				deviceManager.put(devName, fileWriter);
+			}
 		}
 		catch (FileNotFoundException e)
+		{
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		catch (IOException e)
 		{
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -123,7 +136,7 @@ public class ResourceManager
 	 *            가져오는 글자의 개수
 	 * @return 가져온 데이터
 	 */
-	public char[] readDevice(String devName, int num)
+	public char readDevice(String devName, int num) /////////////////////////////////////////////////////////////
 	{
 		char[] input = new char[num];
 		int index = 0;
@@ -146,7 +159,7 @@ public class ResourceManager
 			System.out.println(e);
 		}
 
-		return input;
+		return input[0];
 	}
 
 	/**
@@ -159,9 +172,24 @@ public class ResourceManager
 	 * @param num
 	 *            보내는 글자의 개수
 	 */
-	public void writeDevice(String devName, char[] data, int num)
+	public void writeDevice(String devName)
 	{
-		
+		try
+		{
+			FileWriter fileWriter = (FileWriter) deviceManager.get(devName);
+
+			fileWriter.write(register[0]);
+			fileWriter.flush();
+
+		}
+		catch (FileNotFoundException e)
+		{
+			// 파일을 찾지 못했을 때에 대한 핸들링
+		}
+		catch (IOException e)
+		{
+			System.out.println(e);
+		}
 	}
 
 	/**
@@ -176,10 +204,26 @@ public class ResourceManager
 	public char[] getMemory(int location, int num)
 	{
 		char[] result = new char[num];
+		int upData = 0;
+		int downData = 0;
 
-		for (int i = location; i < location + num; i++)
+		for (int i = location; i < location + (num / 2); i++)
 		{
+			upData = memory[i] >> 8;
+			downData = memory[i] & 255;
 			
+			if (upData >= 10)
+				upData += '0' + 7;
+			else
+				upData += '0';
+
+			if (downData >= 10)
+				downData += '0' + 7;
+			else
+				downData += '0';
+
+			result[(i - location) * 2] = (char)upData;
+			result[(i - location) * 2 + 1] = (char)downData;
 		}
 
 		return result;
@@ -199,12 +243,12 @@ public class ResourceManager
 	{
 		for (int i = locate; i < locate + num; i++)
 		{
-			
-			memory[i] = data[i-locate];
-			
-			System.out.print(data[i-locate]>>8);
+
+			memory[i] = data[i - locate];
+
+			System.out.print(data[i - locate] >> 8);
 			System.out.print(" ");
-			System.out.print(data[i-locate] & 255);
+			System.out.print(data[i - locate] & 255);
 		}
 	}
 
@@ -251,76 +295,76 @@ public class ResourceManager
 	 * @param data
 	 * @return
 	 */
-	public int byteToInt(char[] data) //////////////////////////////////byte[]를 char[]로 수정함
+	public int byteToInt(byte[] data)
 	{
 		return 0;
 	}
-	
+
 	///////////////////////////////////////////////////
 	public void setProgName(String progName, int sectionNum)
 	{
 		progNameList.add(sectionNum, progName);
 	}
-	
+
 	public void setProgStartAddr(String startAddr, int sectionNum)
 	{
 		int addr = Integer.parseInt(startAddr, 16);
-		
-		if(sectionNum > 0)
+
+		if (sectionNum > 0)
 		{
-			addr += progStartAddrList.get(sectionNum-1)+progLengthList.get(sectionNum-1);
+			addr += progStartAddrList.get(sectionNum - 1) + progLengthList.get(sectionNum - 1);
 		}
-		
+
 		progStartAddrList.add(sectionNum, addr);
 	}
-	
+
 	public void setProgLength(String length, int sectionNum)
 	{
 		progLengthList.add(sectionNum, Integer.parseInt(length, 16));
 	}
-	
+
 	public int getProgStartAddr(int sectionNum)
 	{
 		return progStartAddrList.get(sectionNum);
 	}
-	
+
 	public void modifMemory(int locate, char[] data, int num, char modifMode)
 	{
-		if(modifMode == '+')
+		if (modifMode == '+')
 		{
-			for(int i = locate; i < locate+num; i++)
+			for (int i = locate; i < locate + num; i++)
 			{
-				memory[i] = data[i-locate];
+				memory[i] += data[i - locate];
 			}
 		}
-		else if(modifMode == '-')
+		else if (modifMode == '-')
 		{
-			for(int i = locate; i < locate+num; i++)
+			for (int i = locate; i < locate + num; i++)
 			{
-				memory[i] -= data[i-locate];
+				memory[i] -= data[i - locate];
 			}
 		}
 	}
-	
+
 	public void printMemory()
 	{
 		File file = new File("test.txt");
 		try
 		{
 			BufferedWriter bufWriter = new BufferedWriter(new FileWriter(file));
-			for(int i = 0; i < memory.length; i++)
+			for (int i = 0; i < memory.length; i++)
 			{
-				
-				if(i % 4 == 0)
+
+				if (i % 4 == 0)
 					bufWriter.write(" ");
-				if(i % 16 == 0)
+				if (i % 16 == 0)
 				{
 					bufWriter.newLine();
 					bufWriter.write(String.format("%04X ", i));
 				}
-					
-				bufWriter.write(Integer.toHexString(memory[i]>>8));
-				bufWriter.write(Integer.toHexString(memory[i]&255));
+
+				bufWriter.write(Integer.toHexString(memory[i] >> 8));
+				bufWriter.write(Integer.toHexString(memory[i] & 255));
 			}
 			bufWriter.close();
 		}
@@ -329,6 +373,6 @@ public class ResourceManager
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		
+
 	}
 }

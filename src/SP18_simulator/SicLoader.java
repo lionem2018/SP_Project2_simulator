@@ -118,7 +118,6 @@ public class SicLoader
 				String symbol = rMgr.extabList.getSymbol(i);
 				int modifSize = rMgr.extabList.getModifSize(i);
 				char modifMode = rMgr.extabList.getModifMode(i);
-				int section = rMgr.extabList.getSection(i);
 				
 				String modifAddr = "000000";
 				if(modifSize == 5)
