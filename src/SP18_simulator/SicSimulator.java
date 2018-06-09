@@ -286,16 +286,24 @@ public class SicSimulator {
 				{
 					instruction = rMgr.getMemory(rMgr.getRegister(PC_REGISTER), 3);
 					address = ((instruction[1] & 15) << 8) + ((instruction[2] >> 8) << 4) + (instruction[2] & 15);
-					System.out.print(Integer.toBinaryString(address));
 					if((instruction[1] & 15) == 15)
 						address += (0xFFFFF << 12);
 					rMgr.setRegister(PC_REGISTER, rMgr.getRegister(PC_REGISTER) + 3);
-					
+
+					System.out.println(Integer.toHexString(address));
 					if(pcRelative)
+					{
 						address += rMgr.getRegister(PC_REGISTER);
-					rMgr.setRegister(PC_REGISTER, address);
+						
+						if(indirect & !immediate)
+						{
+							int pcValue = rMgr.byteToInt(rMgr.getMemory(address, 3));
+							rMgr.setRegister(PC_REGISTER, pcValue);
+						}
+						else
+							rMgr.setRegister(PC_REGISTER, address);
+					}	
 				}
-				
 				break;
 			
 			case 0x0c:
@@ -581,6 +589,14 @@ public class SicSimulator {
 	 * 남은 모든 instruction이 수행된 모습을 보인다.
 	 */
 	public void allStep() {
+		
+		while(true)
+		{
+			oneStep();
+			
+			if(rMgr.getRegister(PC_REGISTER) == 0x4000)
+				break;
+		}
 	}
 	
 	/**
