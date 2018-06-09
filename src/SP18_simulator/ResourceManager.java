@@ -204,26 +204,10 @@ public class ResourceManager
 	public char[] getMemory(int location, int num)
 	{
 		char[] result = new char[num];
-		int upData = 0;
-		int downData = 0;
 
-		for (int i = location; i < location + (num / 2); i++)
+		for (int i = location; i < location + num; i++)
 		{
-			upData = memory[i] >> 8;
-			downData = memory[i] & 255;
-			
-			if (upData >= 10)
-				upData += '0' + 7;
-			else
-				upData += '0';
-
-			if (downData >= 10)
-				downData += '0' + 7;
-			else
-				downData += '0';
-
-			result[(i - location) * 2] = (char)upData;
-			result[(i - location) * 2 + 1] = (char)downData;
+			result[i-location] = memory[i];
 		}
 
 		return result;

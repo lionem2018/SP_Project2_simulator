@@ -1,6 +1,7 @@
 package SP18_simulator;
 
 import java.io.File;
+import java.util.*;
 
 /**
  * 시뮬레이터로서의 작업을 담당한다. VisualSimulator에서 사용자의 요청을 받으면 이에 따라
@@ -17,7 +18,10 @@ import java.io.File;
  */
 public class SicSimulator {
 	ResourceManager rMgr;
-
+	char[] currentInst;
+	
+	List<String> logList = new ArrayList<>();
+	
 	public SicSimulator(ResourceManager resourceManager) {
 		// 필요하다면 초기화 과정 추가
 		this.rMgr = resourceManager;
@@ -36,15 +40,247 @@ public class SicSimulator {
 	 * 1개의 instruction이 수행된 모습을 보인다. 
 	 */
 	public void oneStep() {
+		char [] upperByte = rMgr.getMemory(rMgr.register[8], 2);
+		int temp = (upperByte[0] >>> 4) + (upperByte[0] & 15);
+		int opcode = temp;
+		boolean extForm = false;
+		boolean pcRelative = false;
+		boolean usedXregister = false;
+		boolean immediate = false;
+		boolean indirect = false;
+		int address = 0;
+		
+		if((temp & 2) == 2)
+		{
+			opcode -= 2;
+			indirect = true;
+		}
+		
+		if((temp & 1) == 1)
+		{
+			opcode -= 1;
+			immediate = true;
+		}
+		
+		temp = (upperByte[1] >>> 8);
+		extForm = (temp & 1) == 1;
+		pcRelative = (temp & 2) == 2;
+		usedXregister = (temp & 8) == 8;
+		
+		switch(opcode)
+		{
+			case 0x14:
+				logList.add("STL");
+				rMgr.register[8] += 3;
+				if(extForm)
+				{
+					rMgr.register[8] += 1;
+					logList.set(logList.size()-1, "+" + logList.get(logList.size()-1));
+				}
+				
+				break;
+				
+			case 0x48:
+				logList.add("JSUB");
+				rMgr.register[8] += 3;
+				if(extForm)
+				{
+					rMgr.register[8] += 1;
+					logList.set(logList.size()-1, "+" + logList.get(logList.size()-1));
+				}
+				
+				break;
+				
+			case 0x00:
+				logList.add("LDA");
+				rMgr.register[8] += 3;
+				if(extForm)
+				{
+					rMgr.register[8] += 1;
+					logList.set(logList.size()-1, "+" + logList.get(logList.size()-1));
+				}
+				
+				break;
+				
+			case 0x28:
+				logList.add("COMP");
+				rMgr.register[8] += 3;
+				if(extForm)
+				{
+					rMgr.register[8] += 1;
+					logList.set(logList.size()-1, "+" + logList.get(logList.size()-1));
+				}
+				
+				break;
+		
+			case 0x4c:
+				logList.add("RSUB");
+				rMgr.register[8] += 3;
+				if(extForm)
+				{
+					rMgr.register[8] += 1;
+					logList.set(logList.size()-1, "+" + logList.get(logList.size()-1));
+				}
+				
+				break;
+			
+			case 0x50:
+				logList.add("LDCH");
+				rMgr.register[8] += 3;
+				if(extForm)
+				{
+					rMgr.register[8] += 1;
+					logList.set(logList.size()-1, "+" + logList.get(logList.size()-1));
+				}
+				
+				break;
+			
+			case 0xdc:
+				logList.add("WD");
+				rMgr.register[8] += 3;
+				if(extForm)
+				{
+					rMgr.register[8] += 1;
+					logList.set(logList.size()-1, "+" + logList.get(logList.size()-1));
+				}
+				
+				break;
+				
+			case 0x3c:
+				logList.add("J");
+				rMgr.register[8] += 3;
+				if(extForm)
+				{
+					rMgr.register[8] += 1;
+					logList.set(logList.size()-1, "+" + logList.get(logList.size()-1));
+				}
+				
+				break;
+			
+			case 0x0c:
+				logList.add("STA");
+				rMgr.register[8] += 3;
+				if(extForm)
+				{
+					rMgr.register[8] += 1;
+					logList.set(logList.size()-1, "+" + logList.get(logList.size()-1));
+				}
+				
+				break;
+				
+			case 0xb4:
+				logList.add("CLEAR");
+				rMgr.register[8] += 2;
+				
+				break;
+			
+			case 0x74:
+				logList.add("LDT");
+				rMgr.register[8] += 3;
+				if(extForm)
+				{
+					rMgr.register[8] += 1;
+					logList.set(logList.size()-1, "+" + logList.get(logList.size()-1));
+				}
+				
+				break;
+			
+			case 0xe0:
+				logList.add("TD");
+				rMgr.register[8] += 3;
+				if(extForm)
+				{
+					rMgr.register[8] += 1;
+					logList.set(logList.size()-1, "+" + logList.get(logList.size()-1));
+				}
+				
+				break;
+			
+			case 0xd8:
+				logList.add("RD");
+				rMgr.register[8] += 3;
+				if(extForm)
+				{
+					rMgr.register[8] += 1;
+					logList.set(logList.size()-1, "+" + logList.get(logList.size()-1));
+				}
+				
+				break;
+				
+			case 0xa0:
+				logList.add("COMPR");
+				rMgr.register[8] += 2;
+				
+				break;
+			
+			case 0x54:
+				logList.add("STCH");
+				rMgr.register[8] += 3;
+				if(extForm)
+				{
+					rMgr.register[8] += 1;
+					logList.set(logList.size()-1, "+" + logList.get(logList.size()-1));
+				}
+				
+				break;
+			
+			case 0xb8:
+				logList.add("TIXR");
+				rMgr.register[8] += 2;
+				
+				break;
+			
+			case 0x38:
+				logList.add("JLT");
+				rMgr.register[8] += 3;
+				if(extForm)
+				{
+					rMgr.register[8] += 1;
+					logList.set(logList.size()-1, "+" + logList.get(logList.size()-1));
+				}
+				
+				break;
+			
+			case 0x10:
+				logList.add("STX");
+				rMgr.register[8] += 3;
+				if(extForm)
+				{
+					rMgr.register[8] += 1;
+					logList.set(logList.size()-1, "+" + logList.get(logList.size()-1));
+				}
+				
+				break;
+				
+			case 0x30:
+				logList.add("JEQ");
+				rMgr.register[8] += 3;
+				if(extForm)
+				{
+					rMgr.register[8] += 1;
+					logList.set(logList.size()-1, "+" + logList.get(logList.size()-1));
+				}
+				
+				break;
+		}
+		
+		/*
 		char [] xbpe = rMgr.getMemory(rMgr.register[8]+1, 2);
-		int format = 6;
+		int format = 3;
 		if((xbpe[0] & 1) == 1)
 		{
-			format = 8;
+			format = 4;
 		}
 		
 		System.out.println(rMgr.getMemory(rMgr.register[8], format));
 		rMgr.register[8] += format/2;
+		*/
+		System.out.println("PC: " +rMgr.register[8]);
+		for(int i = 0; i < logList.size(); i++)
+		{
+			System.out.print(logList.get(i) + " ");
+		}
+		System.out.println();
 	}
 	
 	/**
