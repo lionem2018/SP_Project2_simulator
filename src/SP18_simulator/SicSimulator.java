@@ -92,7 +92,10 @@ public class SicSimulator {
 					address = ((instruction[1] & 15) << 16) + ((instruction[2] >>> 8) << 12) + ((instruction[2] & 15) << 8) + ((instruction[3] >>> 8) << 4) + (instruction[3] & 15);
 					rMgr.setRegister(PC_REGISTER, rMgr.getRegister(PC_REGISTER) + 4);
 					
-					rMgr.modifMemory(address + (3 - rMgr.intToChar(rMgr.getRegister(L_REGISTER)).length), rMgr.intToChar(rMgr.getRegister(L_REGISTER)), rMgr.intToChar(rMgr.getRegister(L_REGISTER)).length, '+');
+					char[] data = new char[3];
+					rMgr.setMemory(address, data, 3);
+					data = rMgr.intToChar(rMgr.getRegister(L_REGISTER));
+					rMgr.modifMemory(address + (3 - data.length), data, data.length, '+');
 				}
 				else
 				{
@@ -102,7 +105,10 @@ public class SicSimulator {
 					
 					if(pcRelative)
 						address += rMgr.getRegister(PC_REGISTER);
-					rMgr.modifMemory(address + (3 - rMgr.intToChar(rMgr.getRegister(L_REGISTER)).length), rMgr.intToChar(rMgr.getRegister(L_REGISTER)), rMgr.intToChar(rMgr.getRegister(L_REGISTER)).length, '+');
+					char[] data = new char[3];
+					rMgr.setMemory(address, data, 3);
+					data = rMgr.intToChar(rMgr.getRegister(L_REGISTER));
+					rMgr.modifMemory(address + (3 - data.length), data, data.length, '+');				
 				}
 				
 				break;
@@ -114,15 +120,18 @@ public class SicSimulator {
 					logList.set(logList.size()-1, "+" + logList.get(logList.size()-1));
 					instruction = rMgr.getMemory(rMgr.getRegister(PC_REGISTER), 4);
 					address = ((instruction[1] & 15) << 16) + ((instruction[2] >> 8) << 12) + ((instruction[2] & 15) << 8) + ((instruction[3] >> 8) << 4) + (instruction[3] & 15);
-					rMgr.setRegister(L_REGISTER, rMgr.getRegister(PC_REGISTER) + 4);
+					rMgr.setRegister(PC_REGISTER, rMgr.getRegister(PC_REGISTER) + 4);
 					
+					rMgr.setRegister(L_REGISTER, rMgr.getRegister(PC_REGISTER));
 					rMgr.setRegister(PC_REGISTER, address);
 				}
 				else
 				{
 					instruction = rMgr.getMemory(rMgr.getRegister(PC_REGISTER), 3);
 					address = ((instruction[1] & 15) << 8) + ((instruction[2] >> 8) << 4) + (instruction[2] & 15);
-					rMgr.setRegister(L_REGISTER, rMgr.getRegister(PC_REGISTER) + 3);
+					rMgr.setRegister(PC_REGISTER, rMgr.getRegister(PC_REGISTER) + 3);
+					
+					rMgr.setRegister(L_REGISTER, rMgr.getRegister(PC_REGISTER));
 					
 					if(pcRelative)
 						address += rMgr.getRegister(PC_REGISTER);
@@ -140,7 +149,7 @@ public class SicSimulator {
 					rMgr.setRegister(PC_REGISTER, rMgr.getRegister(PC_REGISTER) + 4);
 
 					char[] data = rMgr.getMemory(address, 3);
-					rMgr.setRegister(A_REGISTER, rMgr.byteToInt(data));				
+					rMgr.setRegister(A_REGISTER, rMgr.byteToInt(data));	
 				}
 				else
 				{
@@ -149,9 +158,16 @@ public class SicSimulator {
 					rMgr.setRegister(PC_REGISTER, rMgr.getRegister(PC_REGISTER) + 3);
 
 					if(pcRelative)
+					{
 						address += rMgr.getRegister(PC_REGISTER);
-					char[] data = rMgr.getMemory(address, 3);
-					rMgr.setRegister(A_REGISTER, rMgr.byteToInt(data));
+					
+						char[] data = rMgr.getMemory(address, 3);
+						rMgr.setRegister(A_REGISTER, rMgr.byteToInt(data));
+					}
+					else if(immediate)
+					{
+						rMgr.setRegister(A_REGISTER, address);
+					}
 				}
 				break;
 				
@@ -262,6 +278,8 @@ public class SicSimulator {
 					address = ((instruction[1] & 15) << 16) + ((instruction[2] >> 8) << 12) + ((instruction[2] & 15) << 8) + ((instruction[3] >> 8) << 4) + (instruction[3] & 15);
 					if((instruction[1] & 15) == 15)
 						address += (0xFFF << 20);
+					rMgr.setRegister(PC_REGISTER, rMgr.getRegister(PC_REGISTER) + 4);
+					
 					rMgr.setRegister(PC_REGISTER, address);
 				}
 				else
@@ -271,6 +289,8 @@ public class SicSimulator {
 					System.out.print(Integer.toBinaryString(address));
 					if((instruction[1] & 15) == 15)
 						address += (0xFFFFF << 12);
+					rMgr.setRegister(PC_REGISTER, rMgr.getRegister(PC_REGISTER) + 3);
+					
 					if(pcRelative)
 						address += rMgr.getRegister(PC_REGISTER);
 					rMgr.setRegister(PC_REGISTER, address);
@@ -287,7 +307,10 @@ public class SicSimulator {
 					address = ((instruction[1] & 15) << 16) + ((instruction[2] >> 8) << 12) + ((instruction[2] & 15) << 8) + ((instruction[3] >> 8) << 4) + (instruction[3] & 15);
 					rMgr.setRegister(PC_REGISTER, rMgr.getRegister(PC_REGISTER) + 4);
 					
-					rMgr.modifMemory(address + (3 - rMgr.intToChar(rMgr.getRegister(A_REGISTER)).length), rMgr.intToChar(rMgr.getRegister(A_REGISTER)), rMgr.intToChar(rMgr.getRegister(A_REGISTER)).length, '+');
+					char[] data = new char[3];
+					rMgr.setMemory(address, data, 3);
+					data = rMgr.intToChar(rMgr.getRegister(A_REGISTER));
+					rMgr.modifMemory(address + (3 - data.length), data, data.length, '+');
 				}
 				else
 				{
@@ -297,7 +320,10 @@ public class SicSimulator {
 					
 					if(pcRelative)
 						address += rMgr.getRegister(PC_REGISTER);
-					rMgr.modifMemory(address + (3 - rMgr.intToChar(rMgr.getRegister(A_REGISTER)).length), rMgr.intToChar(rMgr.getRegister(A_REGISTER)), rMgr.intToChar(rMgr.getRegister(A_REGISTER)).length, '+');
+					char[] data = new char[3];
+					rMgr.setMemory(address, data, 3);
+					data = rMgr.intToChar(rMgr.getRegister(A_REGISTER));
+					rMgr.modifMemory(address + (3 - data.length), data, data.length, '+');
 				}
 				break;
 				
@@ -418,7 +444,7 @@ public class SicSimulator {
 					
 					char [] data = rMgr.intToChar(rMgr.getRegister(A_REGISTER) & 255);
 					System.out.println(Integer.toBinaryString(data[0]));
-					rMgr.modifMemory(address + rMgr.getRegister(X_REGISTER), data, 1, '+');
+					rMgr.setMemory(address + rMgr.getRegister(X_REGISTER), data, 1);
 				}
 				else
 				{
@@ -429,7 +455,7 @@ public class SicSimulator {
 					if(pcRelative)
 						address += rMgr.getRegister(PC_REGISTER);
 					char [] data = rMgr.intToChar(rMgr.getRegister(A_REGISTER) & 255);
-					rMgr.modifMemory(address + rMgr.getRegister(X_REGISTER), data, 1, '+');
+					rMgr.setMemory(address + rMgr.getRegister(X_REGISTER), data, 1);
 				}
 				break;
 			
@@ -490,8 +516,10 @@ public class SicSimulator {
 					address = ((instruction[1] & 15) << 16) + ((instruction[2] >>> 8) << 12) + ((instruction[2] & 15) << 8) + ((instruction[3] >>> 8) << 4) + (instruction[3] & 15);
 					rMgr.setRegister(PC_REGISTER, rMgr.getRegister(PC_REGISTER) + 4);
 	
-					rMgr.modifMemory(address + (3 - rMgr.intToChar(rMgr.getRegister(X_REGISTER)).length), rMgr.intToChar(rMgr.getRegister(X_REGISTER)), rMgr.intToChar(rMgr.getRegister(X_REGISTER)).length, '+');
-					System.out.println(Integer.toBinaryString(rMgr.intToChar(rMgr.getRegister(X_REGISTER))[0]));
+					char[] data = new char[3];
+					rMgr.setMemory(address, data, 3);
+					data = rMgr.intToChar(rMgr.getRegister(X_REGISTER));
+					rMgr.modifMemory(address + (3 - data.length), data, data.length, '+');
 				}
 				else
 				{
@@ -501,7 +529,10 @@ public class SicSimulator {
 					
 					if(pcRelative)
 						address += rMgr.getRegister(PC_REGISTER);
-					rMgr.modifMemory(address + (3 - rMgr.intToChar(rMgr.getRegister(X_REGISTER)).length), rMgr.intToChar(rMgr.getRegister(X_REGISTER)), rMgr.intToChar(rMgr.getRegister(X_REGISTER)).length, '+');
+					char[] data = new char[3];
+					rMgr.setMemory(address, data, 3);
+					data = rMgr.intToChar(rMgr.getRegister(X_REGISTER));
+					rMgr.modifMemory(address + (3 - data.length), data, data.length, '+');
 				}
 				break;
 				
