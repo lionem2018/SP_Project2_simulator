@@ -38,7 +38,8 @@ public class ResourceManager
 	SymbolTable symtabList = new SymbolTable();
 	// 이외에도 필요한 변수 선언해서 사용할 것.
 	
-	int currentSection;
+	private int currentSection;
+	private int readPointer = 0;
 	SymbolTable extabList = new SymbolTable();
 
 	private List<String> progNameList = new ArrayList<>();
@@ -109,16 +110,19 @@ public class ResourceManager
 			{
 				FileReader fileReader = new FileReader(file);
 				deviceManager.put(devName, fileReader);
+				register[SicSimulator.SW_REGISTER] = 1;
 			}
 			else if (devName.equals("05"))
 			{
 				FileWriter fileWriter = new FileWriter(file, true);
 				deviceManager.put(devName, fileWriter);
+				register[SicSimulator.SW_REGISTER] = 1;
 			}
 		}
 		catch (FileNotFoundException e)
 		{
 			// TODO Auto-generated catch block
+			register[SicSimulator.SW_REGISTER] =  0;
 			e.printStackTrace();
 		}
 		catch (IOException e)
@@ -137,19 +141,29 @@ public class ResourceManager
 	 *            가져오는 글자의 개수
 	 * @return 가져온 데이터
 	 */
-	public char readDevice(String devName, int num) /////////////////////////////////////////////////////////////
+	public char readDevice(String devName) /////////////////////////////////////////////////////////////
 	{
-		char[] input = new char[num];
-		int index = 0;
+		char input = ' ';
 		try
 		{
 			FileReader fileReader = (FileReader) deviceManager.get(devName);
 			int inputChar = 0;
-			while ((inputChar = fileReader.read()) != -1)
+			int index = 0;
+			
+			while(index <= readPointer)
 			{
-				input[index] = (char) inputChar;
+				inputChar = fileReader.read();
 				index++;
 			}
+			
+			if (inputChar != -1)
+			{
+				input = (char) inputChar;
+			}
+			else
+				input = 0;
+			
+			readPointer++;
 		}
 		catch (FileNotFoundException e)
 		{
@@ -160,7 +174,7 @@ public class ResourceManager
 			System.out.println(e);
 		}
 
-		return input[0];
+		return input;
 	}
 
 	/**
@@ -179,7 +193,7 @@ public class ResourceManager
 		{
 			FileWriter fileWriter = (FileWriter) deviceManager.get(devName);
 
-			fileWriter.write(register[0]);
+			fileWriter.write((char)(register[SicSimulator.A_REGISTER] & 255));
 			fileWriter.flush();
 
 		}
@@ -271,7 +285,7 @@ public class ResourceManager
 	 */
 	public char[] intToChar(int data)
 	{
-		char[] inputData = Integer.toString(data, 16).toCharArray();
+		char[] inputData = String.format("%X", data).toCharArray();
 		int length = (inputData.length / 2) + (inputData.length % 2);
 		char[] outputData = new char[length];
 
@@ -289,6 +303,8 @@ public class ResourceManager
 					upByte -= 7;
 				if (downByte >= 10)
 					downByte -= 7;
+				
+				
 
 				outputData[i] = (char) ((upByte << 8) + downByte);
 			}
@@ -321,9 +337,17 @@ public class ResourceManager
 	 * @param data
 	 * @return
 	 */
-	public int byteToInt(byte[] data)
+	public int byteToInt(char[] data)
 	{
-		return 0;
+		int result = 0;
+		for(int i = 0; i < data.length; i++)
+		{
+			result = result << 4;
+			result += (data[i] >> 8);
+			result = result << 4;
+			result += (data[i] & 255);
+		}
+		return result;
 	}
 
 	///////////////////////////////////////////////////

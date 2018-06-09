@@ -51,7 +51,7 @@ public class SicSimulator {
 	 * 1개의 instruction이 수행된 모습을 보인다. 
 	 */
 	public void oneStep() {
-		char [] bytes = rMgr.getMemory(rMgr.getRegister(X_REGISTER), 2);
+		char [] bytes = rMgr.getMemory(rMgr.getRegister(PC_REGISTER), 2);
 		int temp = (bytes[0] >>> 4) + (bytes[0] & 15);
 		int opcode = temp;
 		boolean extForm = false;
@@ -60,6 +60,8 @@ public class SicSimulator {
 		boolean immediate = false;
 		boolean indirect = false;
 		int address = 0;
+		int registerNum = 0;
+		int difference = 0;
 		char [] instruction;
 		
 		if((temp & 2) == 2)
@@ -86,18 +88,20 @@ public class SicSimulator {
 				if(extForm)
 				{
 					logList.set(logList.size()-1, "+" + logList.get(logList.size()-1));
-					instruction = rMgr.getMemory(rMgr.getRegister(X_REGISTER), 4);
-					rMgr.setRegister(X_REGISTER, rMgr.getRegister(X_REGISTER) + 4);
+					instruction = rMgr.getMemory(rMgr.getRegister(PC_REGISTER), 4);
 					address = ((instruction[1] & 15) << 16) + ((instruction[2] >>> 8) << 12) + ((instruction[2] & 15) << 8) + ((instruction[3] >>> 8) << 4) + (instruction[3] & 15);
-					rMgr.setMemory(address, rMgr.intToChar(4096), rMgr.intToChar(4096).length);
+					rMgr.setRegister(PC_REGISTER, rMgr.getRegister(PC_REGISTER) + 4);
+					
+					rMgr.modifMemory(address + (3 - rMgr.intToChar(rMgr.getRegister(L_REGISTER)).length), rMgr.intToChar(rMgr.getRegister(L_REGISTER)), rMgr.intToChar(rMgr.getRegister(L_REGISTER)).length, '+');
 				}
 				else
 				{
-					instruction = rMgr.getMemory(rMgr.getRegister(X_REGISTER), 3);
+					instruction = rMgr.getMemory(rMgr.getRegister(PC_REGISTER), 3);
 					address = ((instruction[1] & 15) << 8) + ((instruction[2] >>> 8) << 4) + (instruction[2] & 15);
-					rMgr.setRegister(X_REGISTER, rMgr.getRegister(X_REGISTER) + 3);
+					rMgr.setRegister(PC_REGISTER, rMgr.getRegister(PC_REGISTER) + 3);
+					
 					if(pcRelative)
-						address += rMgr.getRegister(X_REGISTER);
+						address += rMgr.getRegister(PC_REGISTER);
 					rMgr.modifMemory(address + (3 - rMgr.intToChar(rMgr.getRegister(L_REGISTER)).length), rMgr.intToChar(rMgr.getRegister(L_REGISTER)), rMgr.intToChar(rMgr.getRegister(L_REGISTER)).length, '+');
 				}
 				
@@ -107,277 +111,438 @@ public class SicSimulator {
 				logList.add("JSUB");
 				if(extForm)
 				{
-					instruction = rMgr.getMemory(rMgr.getRegister(X_REGISTER), 4);
-					address = ((instruction[1] & 15) << 16) + ((instruction[2] >>> 8) << 12) + ((instruction[2] & 15) << 8) + ((instruction[3] >>> 8) << 4) + (instruction[3] & 15);
 					logList.set(logList.size()-1, "+" + logList.get(logList.size()-1));
-					rMgr.setRegister(L_REGISTER, rMgr.getRegister(X_REGISTER) + 4);
-					rMgr.setRegister(X_REGISTER, address);
+					instruction = rMgr.getMemory(rMgr.getRegister(PC_REGISTER), 4);
+					address = ((instruction[1] & 15) << 16) + ((instruction[2] >> 8) << 12) + ((instruction[2] & 15) << 8) + ((instruction[3] >> 8) << 4) + (instruction[3] & 15);
+					rMgr.setRegister(L_REGISTER, rMgr.getRegister(PC_REGISTER) + 4);
+					
+					rMgr.setRegister(PC_REGISTER, address);
 				}
 				else
 				{
-					instruction = rMgr.getMemory(rMgr.getRegister(X_REGISTER), 3);
-					address = ((instruction[1] & 15) << 8) + ((instruction[2] >>> 8) << 4) + (instruction[2] & 15);
-					rMgr.setRegister(L_REGISTER, rMgr.getRegister(X_REGISTER) + 3);
+					instruction = rMgr.getMemory(rMgr.getRegister(PC_REGISTER), 3);
+					address = ((instruction[1] & 15) << 8) + ((instruction[2] >> 8) << 4) + (instruction[2] & 15);
+					rMgr.setRegister(L_REGISTER, rMgr.getRegister(PC_REGISTER) + 3);
+					
 					if(pcRelative)
-						address += rMgr.getRegister(X_REGISTER);
-					rMgr.setRegister(X_REGISTER, address);
+						address += rMgr.getRegister(PC_REGISTER);
+					rMgr.setRegister(PC_REGISTER, address);
 				}
 				break;
 				
-			case 0x00:
+			case 0x00:  ////////////////////////////////////////////////테스트 필요
 				logList.add("LDA");
 				if(extForm)
 				{
 					logList.set(logList.size()-1, "+" + logList.get(logList.size()-1));
-					instruction = rMgr.getMemory(rMgr.getRegister(X_REGISTER), 4);
-					address = ((instruction[1] & 15) << 16) + ((instruction[2] >>> 8) << 12) + ((instruction[2] & 15) << 8) + ((instruction[3] >>> 8) << 4) + (instruction[3] & 15);
-					char[] data = rMgr.getMemory(address, 6);
-					
-					rMgr.setRegister(X_REGISTER, rMgr.getRegister(X_REGISTER) + 4);
+					instruction = rMgr.getMemory(rMgr.getRegister(PC_REGISTER), 4);
+					address = ((instruction[1] & 15) << 16) + ((instruction[2] >> 8) << 12) + ((instruction[2] & 15) << 8) + ((instruction[3] >> 8) << 4) + (instruction[3] & 15);
+					rMgr.setRegister(PC_REGISTER, rMgr.getRegister(PC_REGISTER) + 4);
+
+					char[] data = rMgr.getMemory(address, 3);
+					rMgr.setRegister(A_REGISTER, rMgr.byteToInt(data));				
 				}
 				else
 				{
-					instruction = rMgr.getMemory(rMgr.getRegister(X_REGISTER), 3);
-					address = ((instruction[1] & 15) << 8) + ((instruction[2] >>> 8) << 4) + (instruction[2] & 15);
-					
-					rMgr.setRegister(X_REGISTER, rMgr.getRegister(X_REGISTER) + 3);
+					instruction = rMgr.getMemory(rMgr.getRegister(PC_REGISTER), 3);
+					address = ((instruction[1] & 15) << 8) + ((instruction[2] >> 8) << 4) + (instruction[2] & 15);
+					rMgr.setRegister(PC_REGISTER, rMgr.getRegister(PC_REGISTER) + 3);
+
+					if(pcRelative)
+						address += rMgr.getRegister(PC_REGISTER);
+					char[] data = rMgr.getMemory(address, 3);
+					rMgr.setRegister(A_REGISTER, rMgr.byteToInt(data));
 				}
-				
 				break;
 				
-			case 0x28:
+			case 0x28: // COMP 명령어: A레지스터 값과 명령어에 주어진 값과 비교한다.
 				logList.add("COMP");
 				if(extForm)
 				{
-					instruction = rMgr.getMemory(rMgr.getRegister(X_REGISTER), 4);
 					logList.set(logList.size()-1, "+" + logList.get(logList.size()-1));
-					rMgr.setRegister(X_REGISTER, rMgr.getRegister(X_REGISTER) + 4);
+					instruction = rMgr.getMemory(rMgr.getRegister(PC_REGISTER), 4);
+					address = ((instruction[1] & 15) << 16) + ((instruction[2] >>> 8) << 12) + ((instruction[2] & 15) << 8) + ((instruction[3] >>> 8) << 4) + (instruction[3] & 15);
+					rMgr.setRegister(PC_REGISTER, rMgr.getRegister(PC_REGISTER) + 4);
+					
+					if(immediate)
+					{
+						difference = rMgr.getRegister(A_REGISTER) - address;
+						rMgr.setRegister(SW_REGISTER, difference);
+						System.out.println("SW: " + rMgr.getRegister(SW_REGISTER));
+					}
+
 				}
 				else
 				{
-					instruction = rMgr.getMemory(rMgr.getRegister(X_REGISTER), 3);
-					rMgr.setRegister(X_REGISTER, rMgr.getRegister(X_REGISTER) + 3);
+					instruction = rMgr.getMemory(rMgr.getRegister(PC_REGISTER), 3);
+					address = ((instruction[1] & 15) << 8) + ((instruction[2] >>> 8) << 4) + (instruction[2] & 15);
+					rMgr.setRegister(PC_REGISTER, rMgr.getRegister(PC_REGISTER) + 3);
+
+					if(immediate)
+					{
+						difference = rMgr.getRegister(A_REGISTER) - address;
+						rMgr.setRegister(SW_REGISTER, difference);
+						System.out.println("SW: " + rMgr.getRegister(SW_REGISTER));
+					}
 				}
-				
 				break;
 		
 			case 0x4c: // RSUB 명령어: L 레지스터에 저장되어있는 주소로 이동(호출 시점 다음 명령어로 돌아감)
 				logList.add("RSUB");
-				rMgr.setRegister(X_REGISTER, rMgr.getRegister(L_REGISTER));
+				rMgr.setRegister(PC_REGISTER, rMgr.getRegister(L_REGISTER));
 				break;
 			
-			case 0x50:
+			case 0x50:  // LDCH 명령어: 해당 주소의 값을 A레지스터 하위 1바이트에 불러온다.
 				logList.add("LDCH");
 				if(extForm)
 				{
-					instruction = rMgr.getMemory(rMgr.getRegister(X_REGISTER), 4);
 					logList.set(logList.size()-1, "+" + logList.get(logList.size()-1));
-					rMgr.setRegister(X_REGISTER, rMgr.getRegister(X_REGISTER) + 4);
+					instruction = rMgr.getMemory(rMgr.getRegister(PC_REGISTER), 4);
+					address = ((instruction[1] & 15) << 16) + ((instruction[2] >>> 8) << 12) + ((instruction[2] & 15) << 8) + ((instruction[3] >>> 8) << 4) + (instruction[3] & 15);
+					rMgr.setRegister(PC_REGISTER, rMgr.getRegister(PC_REGISTER) + 4);
+					
+					char[] data = rMgr.getMemory(address + rMgr.getRegister(X_REGISTER), 1);
+					rMgr.setRegister(A_REGISTER, rMgr.byteToInt(data));
+					System.out.println((char)rMgr.getRegister(A_REGISTER));
+					
 				}
 				else
 				{
-					instruction = rMgr.getMemory(rMgr.getRegister(X_REGISTER), 3);
-					rMgr.setRegister(X_REGISTER, rMgr.getRegister(X_REGISTER) + 3);
+					instruction = rMgr.getMemory(rMgr.getRegister(PC_REGISTER), 3);
+					address = ((instruction[1] & 15) << 8) + ((instruction[2] >>> 8) << 4) + (instruction[2] & 15);
+					rMgr.setRegister(PC_REGISTER, rMgr.getRegister(PC_REGISTER) + 3);
+					
+					if(pcRelative)
+						address += rMgr.getRegister(PC_REGISTER);
+					char[] data = rMgr.getMemory(address + rMgr.getRegister(X_REGISTER), 1);
+					rMgr.setRegister(A_REGISTER, rMgr.byteToInt(data));
+					System.out.println((char)rMgr.getRegister(A_REGISTER));
 				}
 				
 				break;
 			
-			case 0xdc:
+			case 0xdc: // WD 명령어: 지정된 기기(또는 파일)에 A 레지스터 하위 1바이트의 값을 출력한다.
 				logList.add("WD");
 				if(extForm)
 				{
-					instruction = rMgr.getMemory(rMgr.getRegister(X_REGISTER), 4);
 					logList.set(logList.size()-1, "+" + logList.get(logList.size()-1));
-					rMgr.setRegister(X_REGISTER, rMgr.getRegister(X_REGISTER) + 4);
+					instruction = rMgr.getMemory(rMgr.getRegister(PC_REGISTER), 4);
+					address = ((instruction[1] & 15) << 16) + ((instruction[2] >>> 8) << 12) + ((instruction[2] & 15) << 8) + ((instruction[3] >>> 8) << 4) + (instruction[3] & 15);
+					rMgr.setRegister(PC_REGISTER, rMgr.getRegister(PC_REGISTER) + 4);
+					
+					char[] deviceInfo = rMgr.getMemory(address, 1);
+					String deviceName = String.format("%X%X", deviceInfo[0] >> 8, deviceInfo[0] & 15);
+					System.out.println(deviceName);
+					rMgr.writeDevice(deviceName);
+					System.out.print(Integer.toBinaryString(rMgr.getRegister(A_REGISTER)));
 				}
 				else
 				{
-					instruction = rMgr.getMemory(rMgr.getRegister(X_REGISTER), 3);
-					rMgr.setRegister(X_REGISTER, rMgr.getRegister(X_REGISTER) + 3);
+					instruction = rMgr.getMemory(rMgr.getRegister(PC_REGISTER), 3);
+					address = ((instruction[1] & 15) << 8) + ((instruction[2] >>> 8) << 4) + (instruction[2] & 15);
+					rMgr.setRegister(PC_REGISTER, rMgr.getRegister(PC_REGISTER) + 3);
+					
+					if(pcRelative)
+						address += rMgr.getRegister(PC_REGISTER);
+					char[] deviceInfo = rMgr.getMemory(address, 1);
+					String deviceName = String.format("%X%X", deviceInfo[0] >> 8, deviceInfo[0] & 15);
+					System.out.println(deviceName);
+					rMgr.writeDevice(deviceName);
+					System.out.print(Integer.toBinaryString(rMgr.getRegister(A_REGISTER)));
 				}
 				
 				break;
 				
-			case 0x3c:
+			case 0x3c: ///////////////////////////////////////////////////////////테스트 필요
 				logList.add("J");
 				if(extForm)
 				{
-					instruction = rMgr.getMemory(rMgr.getRegister(X_REGISTER), 4);
 					logList.set(logList.size()-1, "+" + logList.get(logList.size()-1));
-					rMgr.setRegister(X_REGISTER, rMgr.getRegister(X_REGISTER) + 4);
+					instruction = rMgr.getMemory(rMgr.getRegister(PC_REGISTER), 4);
+					address = ((instruction[1] & 15) << 16) + ((instruction[2] >> 8) << 12) + ((instruction[2] & 15) << 8) + ((instruction[3] >> 8) << 4) + (instruction[3] & 15);
+					if((instruction[1] & 15) == 15)
+						address += (0xFFF << 20);
+					rMgr.setRegister(PC_REGISTER, address);
 				}
 				else
 				{
-					instruction = rMgr.getMemory(rMgr.getRegister(X_REGISTER), 3);
-					rMgr.setRegister(X_REGISTER, rMgr.getRegister(X_REGISTER) + 3);
+					instruction = rMgr.getMemory(rMgr.getRegister(PC_REGISTER), 3);
+					address = ((instruction[1] & 15) << 8) + ((instruction[2] >> 8) << 4) + (instruction[2] & 15);
+					System.out.print(Integer.toBinaryString(address));
+					if((instruction[1] & 15) == 15)
+						address += (0xFFFFF << 12);
+					if(pcRelative)
+						address += rMgr.getRegister(PC_REGISTER);
+					rMgr.setRegister(PC_REGISTER, address);
 				}
 				
 				break;
 			
 			case 0x0c:
-				logList.add("STA");
+				logList.add("STA"); ///////////////////////////////////////////////테스트 필요
 				if(extForm)
 				{
-					instruction = rMgr.getMemory(rMgr.getRegister(X_REGISTER), 4);
 					logList.set(logList.size()-1, "+" + logList.get(logList.size()-1));
-					rMgr.setRegister(X_REGISTER, rMgr.getRegister(X_REGISTER) + 4);
+					instruction = rMgr.getMemory(rMgr.getRegister(PC_REGISTER), 4);
+					address = ((instruction[1] & 15) << 16) + ((instruction[2] >> 8) << 12) + ((instruction[2] & 15) << 8) + ((instruction[3] >> 8) << 4) + (instruction[3] & 15);
+					rMgr.setRegister(PC_REGISTER, rMgr.getRegister(PC_REGISTER) + 4);
+					
+					rMgr.modifMemory(address + (3 - rMgr.intToChar(rMgr.getRegister(A_REGISTER)).length), rMgr.intToChar(rMgr.getRegister(A_REGISTER)), rMgr.intToChar(rMgr.getRegister(A_REGISTER)).length, '+');
 				}
 				else
 				{
-					instruction = rMgr.getMemory(rMgr.getRegister(X_REGISTER), 3);
-					rMgr.setRegister(X_REGISTER, rMgr.getRegister(X_REGISTER) + 3);
+					instruction = rMgr.getMemory(rMgr.getRegister(PC_REGISTER), 3);
+					address = ((instruction[1] & 15) << 8) + ((instruction[2] >> 8) << 4) + (instruction[2] & 15);
+					rMgr.setRegister(PC_REGISTER, rMgr.getRegister(PC_REGISTER) + 3);
+					
+					if(pcRelative)
+						address += rMgr.getRegister(PC_REGISTER);
+					rMgr.modifMemory(address + (3 - rMgr.intToChar(rMgr.getRegister(A_REGISTER)).length), rMgr.intToChar(rMgr.getRegister(A_REGISTER)), rMgr.intToChar(rMgr.getRegister(A_REGISTER)).length, '+');
 				}
-				
 				break;
 				
-			case 0xb4:
+			case 0xb4:  // CLEAR 명령어: 해당 레지스터의 값을 0으로 초기화 시키는 명령어
 				logList.add("CLEAR");
-				rMgr.setRegister(X_REGISTER, rMgr.getRegister(X_REGISTER) + 2);
+				instruction = rMgr.getMemory(rMgr.getRegister(PC_REGISTER), 2);
+				rMgr.setRegister(PC_REGISTER, rMgr.getRegister(PC_REGISTER) + 2);
 				
+				registerNum = instruction[1] >>> 8;
+				rMgr.setRegister(registerNum, 0);
 				break;
 			
 			case 0x74:
-				logList.add("LDT");
+				logList.add("LDT"); /////////////////////////////////////////// 테스트 필요
 				if(extForm)
 				{
-					instruction = rMgr.getMemory(rMgr.getRegister(X_REGISTER), 4);
 					logList.set(logList.size()-1, "+" + logList.get(logList.size()-1));
-					rMgr.setRegister(X_REGISTER, rMgr.getRegister(X_REGISTER) + 4);
+					instruction = rMgr.getMemory(rMgr.getRegister(PC_REGISTER), 4);
+					address = ((instruction[1] & 15) << 16) + ((instruction[2] >> 8) << 12) + ((instruction[2] & 15) << 8) + ((instruction[3] >> 8) << 4) + (instruction[3] & 15);
+					rMgr.setRegister(PC_REGISTER, rMgr.getRegister(PC_REGISTER) + 4);
+
+					char[] data = rMgr.getMemory(address, 3);
+					rMgr.setRegister(T_REGISTER, rMgr.byteToInt(data));				
 				}
 				else
 				{
-					instruction = rMgr.getMemory(rMgr.getRegister(X_REGISTER), 3);
-					rMgr.setRegister(X_REGISTER, rMgr.getRegister(X_REGISTER) + 3);
+					instruction = rMgr.getMemory(rMgr.getRegister(PC_REGISTER), 3);
+					address = ((instruction[1] & 15) << 8) + ((instruction[2] >> 8) << 4) + (instruction[2] & 15);
+					rMgr.setRegister(PC_REGISTER, rMgr.getRegister(PC_REGISTER) + 3);
+
+					if(pcRelative)
+						address += rMgr.getRegister(PC_REGISTER);
+					char[] data = rMgr.getMemory(address, 3);
+					rMgr.setRegister(T_REGISTER, rMgr.byteToInt(data));
 				}
-				
 				break;
 			
-			case 0xe0:
+			case 0xe0: // TD 명령어: 해당 이름의 기기(또는 파일)의 입출력 스트림을 확인한다.
 				logList.add("TD");
 				if(extForm)
 				{
-					instruction = rMgr.getMemory(rMgr.getRegister(X_REGISTER), 4);
 					logList.set(logList.size()-1, "+" + logList.get(logList.size()-1));
-					rMgr.setRegister(X_REGISTER, rMgr.getRegister(X_REGISTER) + 4);
+					instruction = rMgr.getMemory(rMgr.getRegister(PC_REGISTER), 4);
+					address = ((instruction[1] & 15) << 16) + ((instruction[2] >> 8) << 12) + ((instruction[2] & 15) << 8) + ((instruction[3] >> 8) << 4) + (instruction[3] & 15);
+					rMgr.setRegister(PC_REGISTER, rMgr.getRegister(PC_REGISTER) + 4);
+					
+					char[] deviceInfo = rMgr.getMemory(address, 1);
+					String deviceName = String.format("%X%X", deviceInfo[0] >> 8, deviceInfo[0] & 15);
+					System.out.println(deviceName);
+					rMgr.testDevice(deviceName);
 				}
 				else
 				{
-					instruction = rMgr.getMemory(rMgr.getRegister(X_REGISTER), 3);
-					rMgr.setRegister(X_REGISTER, rMgr.getRegister(X_REGISTER) + 3);
+					instruction = rMgr.getMemory(rMgr.getRegister(PC_REGISTER), 3);
+					address = ((instruction[1] & 15) << 8) + ((instruction[2] >>> 8) << 4) + (instruction[2] & 15);
+					rMgr.setRegister(PC_REGISTER, rMgr.getRegister(PC_REGISTER) + 3);
+					
+					if(pcRelative)
+						address += rMgr.getRegister(PC_REGISTER);
+					char[] deviceInfo = rMgr.getMemory(address, 1);
+					String deviceName = String.format("%X%X", deviceInfo[0] >> 8, deviceInfo[0] & 15);
+					System.out.println(deviceName);
+					rMgr.testDevice(deviceName);
 				}
 				
 				break;
 			
-			case 0xd8:
+			case 0xd8:  // RD 명령어: 해당 기기(또는 파일)에서 문자 하나를 읽어 A레지스터에 저장한다.
 				logList.add("RD");
 				if(extForm)
 				{
-					instruction = rMgr.getMemory(rMgr.getRegister(X_REGISTER), 4);
 					logList.set(logList.size()-1, "+" + logList.get(logList.size()-1));
-					rMgr.setRegister(X_REGISTER, rMgr.getRegister(X_REGISTER) + 4);
+					instruction = rMgr.getMemory(rMgr.getRegister(PC_REGISTER), 4);
+					address = ((instruction[1] & 15) << 16) + ((instruction[2] >> 8) << 12) + ((instruction[2] & 15) << 8) + ((instruction[3] >> 8) << 4) + (instruction[3] & 15);
+					rMgr.setRegister(PC_REGISTER, rMgr.getRegister(PC_REGISTER) + 4);
+					
+					char[] deviceInfo = rMgr.getMemory(address, 1);
+					String deviceName = String.format("%X%X", deviceInfo[0] >> 8, deviceInfo[0] & 15);
+					rMgr.setRegister(A_REGISTER, rMgr.readDevice(deviceName));
+					System.out.println((char)rMgr.getRegister(A_REGISTER));
 				}
 				else
 				{
-					instruction = rMgr.getMemory(rMgr.getRegister(X_REGISTER), 3);
-					rMgr.setRegister(X_REGISTER, rMgr.getRegister(X_REGISTER) + 3);
+					instruction = rMgr.getMemory(rMgr.getRegister(PC_REGISTER), 3);
+					address = ((instruction[1] & 15) << 8) + ((instruction[2] >>> 8) << 4) + (instruction[2] & 15);
+					rMgr.setRegister(PC_REGISTER, rMgr.getRegister(PC_REGISTER) + 3);
+					
+					if(pcRelative)
+						address += rMgr.getRegister(PC_REGISTER);
+					char[] deviceInfo = rMgr.getMemory(address, 1);
+					String deviceName = String.format("%X%X", deviceInfo[0] >> 8, deviceInfo[0] & 15);
+					rMgr.setRegister(A_REGISTER, rMgr.readDevice(deviceName));
+					System.out.println((char)rMgr.getRegister(A_REGISTER));
 				}
 				
 				break;
 				
-			case 0xa0:
+			case 0xa0:  // COMPR 명령어: 두 레지스터 값을 비교한다.
 				logList.add("COMPR");
-				rMgr.setRegister(X_REGISTER, rMgr.getRegister(X_REGISTER) + 2);
+				instruction = rMgr.getMemory(rMgr.getRegister(PC_REGISTER), 2);
+				rMgr.setRegister(PC_REGISTER, rMgr.getRegister(PC_REGISTER) + 2);
 				
+				registerNum = instruction[1] >>> 8;
+				int compareRegister = instruction[1] & 15;
+				difference = rMgr.getRegister(registerNum) - rMgr.getRegister(compareRegister);
+				rMgr.setRegister(SW_REGISTER, difference);
+				System.out.println("SW: " + rMgr.getRegister(SW_REGISTER));
 				break;
 			
-			case 0x54:
+			case 0x54:  // STCH 명령어: A레지스터 하위 1바이트에 저장된 문자를 지정된 주소에 저장한다.
 				logList.add("STCH");
 				if(extForm)
 				{
-					instruction = rMgr.getMemory(rMgr.getRegister(X_REGISTER), 4);
 					logList.set(logList.size()-1, "+" + logList.get(logList.size()-1));
-					rMgr.setRegister(X_REGISTER, rMgr.getRegister(X_REGISTER) + 4);
+					instruction = rMgr.getMemory(rMgr.getRegister(PC_REGISTER), 4);
+					address = ((instruction[1] & 15) << 16) + ((instruction[2] >> 8) << 12) + ((instruction[2] & 15) << 8) + ((instruction[3] >> 8) << 4) + (instruction[3] & 15);
+					rMgr.setRegister(PC_REGISTER, rMgr.getRegister(PC_REGISTER) + 4);
+					
+					char [] data = rMgr.intToChar(rMgr.getRegister(A_REGISTER) & 255);
+					System.out.println(Integer.toBinaryString(data[0]));
+					rMgr.modifMemory(address + rMgr.getRegister(X_REGISTER), data, 1, '+');
 				}
 				else
 				{
-					instruction = rMgr.getMemory(rMgr.getRegister(X_REGISTER), 3);
-					rMgr.setRegister(X_REGISTER, rMgr.getRegister(X_REGISTER) + 3);
+					instruction = rMgr.getMemory(rMgr.getRegister(PC_REGISTER), 3);
+					address = ((instruction[1] & 15) << 8) + ((instruction[2] >> 8) << 4) + (instruction[2] & 15);
+					rMgr.setRegister(PC_REGISTER, rMgr.getRegister(PC_REGISTER) + 3);
+					
+					if(pcRelative)
+						address += rMgr.getRegister(PC_REGISTER);
+					char [] data = rMgr.intToChar(rMgr.getRegister(A_REGISTER) & 255);
+					rMgr.modifMemory(address + rMgr.getRegister(X_REGISTER), data, 1, '+');
 				}
-				
 				break;
 			
-			case 0xb8:
+			case 0xb8:  ////////////////////////////////////////////////////////////////테스트 필요
 				logList.add("TIXR");
-				rMgr.setRegister(X_REGISTER, rMgr.getRegister(X_REGISTER) + 2);
+				instruction = rMgr.getMemory(rMgr.getRegister(PC_REGISTER), 2);
+				rMgr.setRegister(PC_REGISTER, rMgr.getRegister(PC_REGISTER) + 2);
 				
+				registerNum = instruction[1] >>> 8;
+				rMgr.setRegister(X_REGISTER, rMgr.getRegister(X_REGISTER)+1);
+				difference = rMgr.getRegister(X_REGISTER) - rMgr.getRegister(registerNum);
+				rMgr.setRegister(SW_REGISTER, difference);
 				break;
 			
-			case 0x38:
+			case 0x38:  // JLT 명령어: 비교 후 작다면 명시된 주소로 이동한다.
 				logList.add("JLT");
 				if(extForm)
 				{
-					instruction = rMgr.getMemory(rMgr.getRegister(X_REGISTER), 4);
 					logList.set(logList.size()-1, "+" + logList.get(logList.size()-1));
-					rMgr.setRegister(X_REGISTER, rMgr.getRegister(X_REGISTER) + 4);
+					instruction = rMgr.getMemory(rMgr.getRegister(PC_REGISTER), 4);
+					address = ((instruction[1] & 15) << 16) + ((instruction[2] >>> 8) << 12) + ((instruction[2] & 15) << 8) + ((instruction[3] >>> 8) << 4) + (instruction[3] & 15);
+					rMgr.setRegister(PC_REGISTER, rMgr.getRegister(PC_REGISTER) + 4);
+					
+					if((instruction[1] & 15) == 15)
+						address += (0xFFF << 20);
+					
+					if(rMgr.getRegister(SW_REGISTER) < 0)
+					{
+						rMgr.setRegister(PC_REGISTER, address);
+					}
 				}
 				else
 				{
-					instruction = rMgr.getMemory(rMgr.getRegister(X_REGISTER), 3);
-					rMgr.setRegister(X_REGISTER, rMgr.getRegister(X_REGISTER) + 3);
+					instruction = rMgr.getMemory(rMgr.getRegister(PC_REGISTER), 3);
+					address = ((instruction[1] & 15) << 8) + ((instruction[2] >>> 8) << 4) + (instruction[2] & 15);
+					rMgr.setRegister(PC_REGISTER, rMgr.getRegister(PC_REGISTER) + 3);
+					
+					if((instruction[1] & 15) == 15)
+							address += (0xFFFFF << 12);
+					
+					if(pcRelative)
+						address += rMgr.getRegister(PC_REGISTER);
+					
+					if(rMgr.getRegister(SW_REGISTER) < 0)
+					{
+						rMgr.setRegister(PC_REGISTER, address);
+					}
 				}
 				
 				break;
 			
-			case 0x10:
+			case 0x10:  ///////////////////////////////////////////////테스트 필요
 				logList.add("STX");
 				if(extForm)
 				{
-					instruction = rMgr.getMemory(rMgr.getRegister(X_REGISTER), 4);
 					logList.set(logList.size()-1, "+" + logList.get(logList.size()-1));
-					rMgr.setRegister(X_REGISTER, rMgr.getRegister(X_REGISTER) + 4);
+					instruction = rMgr.getMemory(rMgr.getRegister(PC_REGISTER), 4);
+					address = ((instruction[1] & 15) << 16) + ((instruction[2] >>> 8) << 12) + ((instruction[2] & 15) << 8) + ((instruction[3] >>> 8) << 4) + (instruction[3] & 15);
+					rMgr.setRegister(PC_REGISTER, rMgr.getRegister(PC_REGISTER) + 4);
+	
+					rMgr.modifMemory(address + (3 - rMgr.intToChar(rMgr.getRegister(X_REGISTER)).length), rMgr.intToChar(rMgr.getRegister(X_REGISTER)), rMgr.intToChar(rMgr.getRegister(X_REGISTER)).length, '+');
+					System.out.println(Integer.toBinaryString(rMgr.intToChar(rMgr.getRegister(X_REGISTER))[0]));
 				}
 				else
 				{
-					instruction = rMgr.getMemory(rMgr.getRegister(X_REGISTER), 3);
-					rMgr.setRegister(X_REGISTER, rMgr.getRegister(X_REGISTER) + 3);
+					instruction = rMgr.getMemory(rMgr.getRegister(PC_REGISTER), 3);
+					address = ((instruction[1] & 15) << 8) + ((instruction[2] >>> 8) << 4) + (instruction[2] & 15);
+					rMgr.setRegister(PC_REGISTER, rMgr.getRegister(PC_REGISTER) + 3);
+					
+					if(pcRelative)
+						address += rMgr.getRegister(PC_REGISTER);
+					rMgr.modifMemory(address + (3 - rMgr.intToChar(rMgr.getRegister(X_REGISTER)).length), rMgr.intToChar(rMgr.getRegister(X_REGISTER)), rMgr.intToChar(rMgr.getRegister(X_REGISTER)).length, '+');
 				}
-				
 				break;
 				
-			case 0x30:
+			case 0x30:  ///////////////////////////////////////////////////////////테스트 필요
 				logList.add("JEQ");
 				if(extForm)
 				{
-					instruction = rMgr.getMemory(rMgr.getRegister(X_REGISTER), 4);
 					logList.set(logList.size()-1, "+" + logList.get(logList.size()-1));
-					rMgr.setRegister(X_REGISTER, rMgr.getRegister(X_REGISTER) + 4);
+					instruction = rMgr.getMemory(rMgr.getRegister(PC_REGISTER), 4);
+					address = ((instruction[1] & 15) << 16) + ((instruction[2] >>> 8) << 12) + ((instruction[2] & 15) << 8) + ((instruction[3] >>> 8) << 4) + (instruction[3] & 15);
+					rMgr.setRegister(PC_REGISTER, rMgr.getRegister(PC_REGISTER) + 4);
+					
+					if((instruction[1] & 15) == 15)
+						address += (0xFFF << 20);
+					
+					if(rMgr.getRegister(SW_REGISTER) == 0)
+					{
+						rMgr.setRegister(PC_REGISTER, address);
+					}
 				}
 				else
 				{
-					instruction = rMgr.getMemory(rMgr.getRegister(X_REGISTER), 3);
-					rMgr.setRegister(X_REGISTER, rMgr.getRegister(X_REGISTER) + 3);
+					instruction = rMgr.getMemory(rMgr.getRegister(PC_REGISTER), 3);
+					address = ((instruction[1] & 15) << 8) + ((instruction[2] >>> 8) << 4) + (instruction[2] & 15);
+					rMgr.setRegister(PC_REGISTER, rMgr.getRegister(PC_REGISTER) + 3);
+					
+					if((instruction[1] & 15) == 15)
+						address += (0xFFFFF << 12);
+					if(pcRelative)
+						address += rMgr.getRegister(PC_REGISTER);
+					if(rMgr.getRegister(SW_REGISTER) == 0)
+					{
+						rMgr.setRegister(PC_REGISTER, address);
+					}
 				}
 				
 				break;
 		}
 		
-		/*
-		char [] xbpe = rMgr.getMemory(rMgr.register[8]+1, 2);
-		int format = 3;
-		if((xbpe[0] & 1) == 1)
-		{
-			format = 4;
-		}
-		
-		System.out.println(rMgr.getMemory(rMgr.register[8], format));
-		rMgr.register[8] += format/2;
-		*/
-		System.out.println("PC: " + rMgr.getRegister(X_REGISTER));
-		for(int i = 0; i < logList.size(); i++)
-		{
-			System.out.print(logList.get(i) + " ");
-		}
-		System.out.println();
+		System.out.println("PC: " + rMgr.getRegister(PC_REGISTER));
+		System.out.println(logList.get(logList.size()-1));
 		rMgr.printMemory();
 	}
 	
