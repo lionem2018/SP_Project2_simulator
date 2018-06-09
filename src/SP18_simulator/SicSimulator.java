@@ -17,9 +17,20 @@ import java.util.*;
  *  + 제공하는 프로그램 구조의 개선방법을 제안하고 싶은 분들은 보고서의 결론 뒷부분에 첨부 바랍니다. 내용에 따라 가산점이 있을 수 있습니다.
  */
 public class SicSimulator {
+	public static final int A_REGISTER = 0;
+	public static final int X_REGISTER = 1;
+	public static final int L_REGISTER = 2;
+	public static final int B_REGISTER = 3;
+	public static final int S_REGISTER = 4;
+	public static final int T_REGISTER = 5;
+	public static final int F_REGISTER = 6;
+	public static final int PC_REGISTER = 8;
+	public static final int SW_REGISTER = 9;
+	
 	ResourceManager rMgr;
 	char[] currentInst;
 	
+	List<String> instList = new ArrayList<>();
 	List<String> logList = new ArrayList<>();
 	
 	public SicSimulator(ResourceManager resourceManager) {
@@ -40,8 +51,8 @@ public class SicSimulator {
 	 * 1개의 instruction이 수행된 모습을 보인다. 
 	 */
 	public void oneStep() {
-		char [] upperByte = rMgr.getMemory(rMgr.register[8], 2);
-		int temp = (upperByte[0] >>> 4) + (upperByte[0] & 15);
+		char [] bytes = rMgr.getMemory(rMgr.getRegister(X_REGISTER), 2);
+		int temp = (bytes[0] >>> 4) + (bytes[0] & 15);
 		int opcode = temp;
 		boolean extForm = false;
 		boolean pcRelative = false;
@@ -49,6 +60,7 @@ public class SicSimulator {
 		boolean immediate = false;
 		boolean indirect = false;
 		int address = 0;
+		char [] instruction;
 		
 		if((temp & 2) == 2)
 		{
@@ -62,203 +74,288 @@ public class SicSimulator {
 			immediate = true;
 		}
 		
-		temp = (upperByte[1] >>> 8);
+		temp = (bytes[1] >>> 8);
 		extForm = (temp & 1) == 1;
 		pcRelative = (temp & 2) == 2;
 		usedXregister = (temp & 8) == 8;
 		
 		switch(opcode)
 		{
-			case 0x14:
+			case 0x14:  // STL 명령어: L 레지스터 값을 해당 주소에 저장하는 명령어
 				logList.add("STL");
-				rMgr.register[8] += 3;
 				if(extForm)
 				{
-					rMgr.register[8] += 1;
 					logList.set(logList.size()-1, "+" + logList.get(logList.size()-1));
+					instruction = rMgr.getMemory(rMgr.getRegister(X_REGISTER), 4);
+					rMgr.setRegister(X_REGISTER, rMgr.getRegister(X_REGISTER) + 4);
+					address = ((instruction[1] & 15) << 16) + ((instruction[2] >>> 8) << 12) + ((instruction[2] & 15) << 8) + ((instruction[3] >>> 8) << 4) + (instruction[3] & 15);
+					rMgr.setMemory(address, rMgr.intToChar(4096), rMgr.intToChar(4096).length);
+				}
+				else
+				{
+					instruction = rMgr.getMemory(rMgr.getRegister(X_REGISTER), 3);
+					address = ((instruction[1] & 15) << 8) + ((instruction[2] >>> 8) << 4) + (instruction[2] & 15);
+					rMgr.setRegister(X_REGISTER, rMgr.getRegister(X_REGISTER) + 3);
+					if(pcRelative)
+						address += rMgr.getRegister(X_REGISTER);
+					rMgr.modifMemory(address + (3 - rMgr.intToChar(rMgr.getRegister(L_REGISTER)).length), rMgr.intToChar(rMgr.getRegister(L_REGISTER)), rMgr.intToChar(rMgr.getRegister(L_REGISTER)).length, '+');
 				}
 				
 				break;
 				
-			case 0x48:
+			case 0x48: // JSUB 명령어: 주소값으로 들어온 곳으로 이동
 				logList.add("JSUB");
-				rMgr.register[8] += 3;
 				if(extForm)
 				{
-					rMgr.register[8] += 1;
+					instruction = rMgr.getMemory(rMgr.getRegister(X_REGISTER), 4);
+					address = ((instruction[1] & 15) << 16) + ((instruction[2] >>> 8) << 12) + ((instruction[2] & 15) << 8) + ((instruction[3] >>> 8) << 4) + (instruction[3] & 15);
 					logList.set(logList.size()-1, "+" + logList.get(logList.size()-1));
+					rMgr.setRegister(L_REGISTER, rMgr.getRegister(X_REGISTER) + 4);
+					rMgr.setRegister(X_REGISTER, address);
 				}
-				
+				else
+				{
+					instruction = rMgr.getMemory(rMgr.getRegister(X_REGISTER), 3);
+					address = ((instruction[1] & 15) << 8) + ((instruction[2] >>> 8) << 4) + (instruction[2] & 15);
+					rMgr.setRegister(L_REGISTER, rMgr.getRegister(X_REGISTER) + 3);
+					if(pcRelative)
+						address += rMgr.getRegister(X_REGISTER);
+					rMgr.setRegister(X_REGISTER, address);
+				}
 				break;
 				
 			case 0x00:
 				logList.add("LDA");
-				rMgr.register[8] += 3;
 				if(extForm)
 				{
-					rMgr.register[8] += 1;
 					logList.set(logList.size()-1, "+" + logList.get(logList.size()-1));
+					instruction = rMgr.getMemory(rMgr.getRegister(X_REGISTER), 4);
+					address = ((instruction[1] & 15) << 16) + ((instruction[2] >>> 8) << 12) + ((instruction[2] & 15) << 8) + ((instruction[3] >>> 8) << 4) + (instruction[3] & 15);
+					char[] data = rMgr.getMemory(address, 6);
+					
+					rMgr.setRegister(X_REGISTER, rMgr.getRegister(X_REGISTER) + 4);
+				}
+				else
+				{
+					instruction = rMgr.getMemory(rMgr.getRegister(X_REGISTER), 3);
+					address = ((instruction[1] & 15) << 8) + ((instruction[2] >>> 8) << 4) + (instruction[2] & 15);
+					
+					rMgr.setRegister(X_REGISTER, rMgr.getRegister(X_REGISTER) + 3);
 				}
 				
 				break;
 				
 			case 0x28:
 				logList.add("COMP");
-				rMgr.register[8] += 3;
 				if(extForm)
 				{
-					rMgr.register[8] += 1;
+					instruction = rMgr.getMemory(rMgr.getRegister(X_REGISTER), 4);
 					logList.set(logList.size()-1, "+" + logList.get(logList.size()-1));
+					rMgr.setRegister(X_REGISTER, rMgr.getRegister(X_REGISTER) + 4);
+				}
+				else
+				{
+					instruction = rMgr.getMemory(rMgr.getRegister(X_REGISTER), 3);
+					rMgr.setRegister(X_REGISTER, rMgr.getRegister(X_REGISTER) + 3);
 				}
 				
 				break;
 		
-			case 0x4c:
+			case 0x4c: // RSUB 명령어: L 레지스터에 저장되어있는 주소로 이동(호출 시점 다음 명령어로 돌아감)
 				logList.add("RSUB");
-				rMgr.register[8] += 3;
-				if(extForm)
-				{
-					rMgr.register[8] += 1;
-					logList.set(logList.size()-1, "+" + logList.get(logList.size()-1));
-				}
-				
+				rMgr.setRegister(X_REGISTER, rMgr.getRegister(L_REGISTER));
 				break;
 			
 			case 0x50:
 				logList.add("LDCH");
-				rMgr.register[8] += 3;
 				if(extForm)
 				{
-					rMgr.register[8] += 1;
+					instruction = rMgr.getMemory(rMgr.getRegister(X_REGISTER), 4);
 					logList.set(logList.size()-1, "+" + logList.get(logList.size()-1));
+					rMgr.setRegister(X_REGISTER, rMgr.getRegister(X_REGISTER) + 4);
+				}
+				else
+				{
+					instruction = rMgr.getMemory(rMgr.getRegister(X_REGISTER), 3);
+					rMgr.setRegister(X_REGISTER, rMgr.getRegister(X_REGISTER) + 3);
 				}
 				
 				break;
 			
 			case 0xdc:
 				logList.add("WD");
-				rMgr.register[8] += 3;
 				if(extForm)
 				{
-					rMgr.register[8] += 1;
+					instruction = rMgr.getMemory(rMgr.getRegister(X_REGISTER), 4);
 					logList.set(logList.size()-1, "+" + logList.get(logList.size()-1));
+					rMgr.setRegister(X_REGISTER, rMgr.getRegister(X_REGISTER) + 4);
+				}
+				else
+				{
+					instruction = rMgr.getMemory(rMgr.getRegister(X_REGISTER), 3);
+					rMgr.setRegister(X_REGISTER, rMgr.getRegister(X_REGISTER) + 3);
 				}
 				
 				break;
 				
 			case 0x3c:
 				logList.add("J");
-				rMgr.register[8] += 3;
 				if(extForm)
 				{
-					rMgr.register[8] += 1;
+					instruction = rMgr.getMemory(rMgr.getRegister(X_REGISTER), 4);
 					logList.set(logList.size()-1, "+" + logList.get(logList.size()-1));
+					rMgr.setRegister(X_REGISTER, rMgr.getRegister(X_REGISTER) + 4);
+				}
+				else
+				{
+					instruction = rMgr.getMemory(rMgr.getRegister(X_REGISTER), 3);
+					rMgr.setRegister(X_REGISTER, rMgr.getRegister(X_REGISTER) + 3);
 				}
 				
 				break;
 			
 			case 0x0c:
 				logList.add("STA");
-				rMgr.register[8] += 3;
 				if(extForm)
 				{
-					rMgr.register[8] += 1;
+					instruction = rMgr.getMemory(rMgr.getRegister(X_REGISTER), 4);
 					logList.set(logList.size()-1, "+" + logList.get(logList.size()-1));
+					rMgr.setRegister(X_REGISTER, rMgr.getRegister(X_REGISTER) + 4);
+				}
+				else
+				{
+					instruction = rMgr.getMemory(rMgr.getRegister(X_REGISTER), 3);
+					rMgr.setRegister(X_REGISTER, rMgr.getRegister(X_REGISTER) + 3);
 				}
 				
 				break;
 				
 			case 0xb4:
 				logList.add("CLEAR");
-				rMgr.register[8] += 2;
+				rMgr.setRegister(X_REGISTER, rMgr.getRegister(X_REGISTER) + 2);
 				
 				break;
 			
 			case 0x74:
 				logList.add("LDT");
-				rMgr.register[8] += 3;
 				if(extForm)
 				{
-					rMgr.register[8] += 1;
+					instruction = rMgr.getMemory(rMgr.getRegister(X_REGISTER), 4);
 					logList.set(logList.size()-1, "+" + logList.get(logList.size()-1));
+					rMgr.setRegister(X_REGISTER, rMgr.getRegister(X_REGISTER) + 4);
+				}
+				else
+				{
+					instruction = rMgr.getMemory(rMgr.getRegister(X_REGISTER), 3);
+					rMgr.setRegister(X_REGISTER, rMgr.getRegister(X_REGISTER) + 3);
 				}
 				
 				break;
 			
 			case 0xe0:
 				logList.add("TD");
-				rMgr.register[8] += 3;
 				if(extForm)
 				{
-					rMgr.register[8] += 1;
+					instruction = rMgr.getMemory(rMgr.getRegister(X_REGISTER), 4);
 					logList.set(logList.size()-1, "+" + logList.get(logList.size()-1));
+					rMgr.setRegister(X_REGISTER, rMgr.getRegister(X_REGISTER) + 4);
+				}
+				else
+				{
+					instruction = rMgr.getMemory(rMgr.getRegister(X_REGISTER), 3);
+					rMgr.setRegister(X_REGISTER, rMgr.getRegister(X_REGISTER) + 3);
 				}
 				
 				break;
 			
 			case 0xd8:
 				logList.add("RD");
-				rMgr.register[8] += 3;
 				if(extForm)
 				{
-					rMgr.register[8] += 1;
+					instruction = rMgr.getMemory(rMgr.getRegister(X_REGISTER), 4);
 					logList.set(logList.size()-1, "+" + logList.get(logList.size()-1));
+					rMgr.setRegister(X_REGISTER, rMgr.getRegister(X_REGISTER) + 4);
+				}
+				else
+				{
+					instruction = rMgr.getMemory(rMgr.getRegister(X_REGISTER), 3);
+					rMgr.setRegister(X_REGISTER, rMgr.getRegister(X_REGISTER) + 3);
 				}
 				
 				break;
 				
 			case 0xa0:
 				logList.add("COMPR");
-				rMgr.register[8] += 2;
+				rMgr.setRegister(X_REGISTER, rMgr.getRegister(X_REGISTER) + 2);
 				
 				break;
 			
 			case 0x54:
 				logList.add("STCH");
-				rMgr.register[8] += 3;
 				if(extForm)
 				{
-					rMgr.register[8] += 1;
+					instruction = rMgr.getMemory(rMgr.getRegister(X_REGISTER), 4);
 					logList.set(logList.size()-1, "+" + logList.get(logList.size()-1));
+					rMgr.setRegister(X_REGISTER, rMgr.getRegister(X_REGISTER) + 4);
+				}
+				else
+				{
+					instruction = rMgr.getMemory(rMgr.getRegister(X_REGISTER), 3);
+					rMgr.setRegister(X_REGISTER, rMgr.getRegister(X_REGISTER) + 3);
 				}
 				
 				break;
 			
 			case 0xb8:
 				logList.add("TIXR");
-				rMgr.register[8] += 2;
+				rMgr.setRegister(X_REGISTER, rMgr.getRegister(X_REGISTER) + 2);
 				
 				break;
 			
 			case 0x38:
 				logList.add("JLT");
-				rMgr.register[8] += 3;
 				if(extForm)
 				{
-					rMgr.register[8] += 1;
+					instruction = rMgr.getMemory(rMgr.getRegister(X_REGISTER), 4);
 					logList.set(logList.size()-1, "+" + logList.get(logList.size()-1));
+					rMgr.setRegister(X_REGISTER, rMgr.getRegister(X_REGISTER) + 4);
+				}
+				else
+				{
+					instruction = rMgr.getMemory(rMgr.getRegister(X_REGISTER), 3);
+					rMgr.setRegister(X_REGISTER, rMgr.getRegister(X_REGISTER) + 3);
 				}
 				
 				break;
 			
 			case 0x10:
 				logList.add("STX");
-				rMgr.register[8] += 3;
 				if(extForm)
 				{
-					rMgr.register[8] += 1;
+					instruction = rMgr.getMemory(rMgr.getRegister(X_REGISTER), 4);
 					logList.set(logList.size()-1, "+" + logList.get(logList.size()-1));
+					rMgr.setRegister(X_REGISTER, rMgr.getRegister(X_REGISTER) + 4);
+				}
+				else
+				{
+					instruction = rMgr.getMemory(rMgr.getRegister(X_REGISTER), 3);
+					rMgr.setRegister(X_REGISTER, rMgr.getRegister(X_REGISTER) + 3);
 				}
 				
 				break;
 				
 			case 0x30:
 				logList.add("JEQ");
-				rMgr.register[8] += 3;
 				if(extForm)
 				{
-					rMgr.register[8] += 1;
+					instruction = rMgr.getMemory(rMgr.getRegister(X_REGISTER), 4);
 					logList.set(logList.size()-1, "+" + logList.get(logList.size()-1));
+					rMgr.setRegister(X_REGISTER, rMgr.getRegister(X_REGISTER) + 4);
+				}
+				else
+				{
+					instruction = rMgr.getMemory(rMgr.getRegister(X_REGISTER), 3);
+					rMgr.setRegister(X_REGISTER, rMgr.getRegister(X_REGISTER) + 3);
 				}
 				
 				break;
@@ -275,12 +372,13 @@ public class SicSimulator {
 		System.out.println(rMgr.getMemory(rMgr.register[8], format));
 		rMgr.register[8] += format/2;
 		*/
-		System.out.println("PC: " +rMgr.register[8]);
+		System.out.println("PC: " + rMgr.getRegister(X_REGISTER));
 		for(int i = 0; i < logList.size(); i++)
 		{
 			System.out.print(logList.get(i) + " ");
 		}
 		System.out.println();
+		rMgr.printMemory();
 	}
 	
 	/**

@@ -30,13 +30,14 @@ public class ResourceManager
 	 * <br>
 	 * 이것도 복잡하면 알아서 구현해서 사용해도 괜찮습니다.
 	 */
-	HashMap<String, Object> deviceManager = new HashMap<String, Object>();
-	char[] memory = new char[65536]; // String으로 수정해서 사용하여도 무방함, 인자 하나가 1byte
-	int[] register = new int[10];
-	double register_F;
+	private HashMap<String, Object> deviceManager = new HashMap<String, Object>();
+	private char[] memory = new char[65536]; // String으로 수정해서 사용하여도 무방함, 인자 하나가 1byte
+	private int[] register = new int[10];
+	private double register_F;
 
 	SymbolTable symtabList = new SymbolTable();
 	// 이외에도 필요한 변수 선언해서 사용할 것.
+	
 	int currentSection;
 	SymbolTable extabList = new SymbolTable();
 
@@ -53,9 +54,9 @@ public class ResourceManager
 			register[i] = 0;
 
 		register_F = 0;
-
 		currentSection = 0;
-		register[8] = progStartAddrList.get(currentSection);
+		register[SicSimulator.X_REGISTER] = progStartAddrList.get(currentSection);
+		register[SicSimulator.L_REGISTER] = 0x4000;
 	}
 
 	/**
@@ -270,7 +271,48 @@ public class ResourceManager
 	 */
 	public char[] intToChar(int data)
 	{
-		return null;
+		char[] inputData = Integer.toString(data, 16).toCharArray();
+		int length = (inputData.length / 2) + (inputData.length % 2);
+		char[] outputData = new char[length];
+
+		int upByte = 0;
+		int downByte = 0;
+
+		if (inputData.length % 2 == 0)
+		{
+
+			for (int i = 0; i < length; i++)
+			{
+				upByte = inputData[i * 2] - '0';
+				downByte = inputData[i * 2 + 1] - '0';
+				if (upByte >= 10)
+					upByte -= 7;
+				if (downByte >= 10)
+					downByte -= 7;
+
+				outputData[i] = (char) ((upByte << 8) + downByte);
+			}
+		}
+		else
+		{
+			downByte = (inputData[0] - '0');
+			if(downByte >= 10)
+				downByte -= 7;
+			outputData[0] = (char) downByte;
+			
+			for (int i = 1; i < length; i++)
+			{
+				upByte = inputData[i * 2 - 1] - '0';
+				downByte = inputData[i * 2] - '0';
+				if (upByte >= 10)
+					upByte -= 7;
+				if (downByte >= 10)
+					downByte -= 7;
+
+				outputData[i] = (char) ((upByte << 8) + downByte);
+			}
+		}
+		return outputData;
 	}
 
 	/**
