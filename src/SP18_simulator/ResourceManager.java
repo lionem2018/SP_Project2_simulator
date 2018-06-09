@@ -37,7 +37,6 @@ public class ResourceManager
 
 	SymbolTable symtabList = new SymbolTable();
 	// 이외에도 필요한 변수 선언해서 사용할 것.
-	public static int initReturnAddr = 0x4000;
 	
 	private int currentSection;
 	private int readPointer = 0;
@@ -58,7 +57,7 @@ public class ResourceManager
 		register_F = 0;
 		currentSection = 0;
 		register[SicSimulator.X_REGISTER] = progStartAddrList.get(currentSection);
-		register[SicSimulator.L_REGISTER] = initReturnAddr;
+		register[SicSimulator.L_REGISTER] = SicSimulator.INIT_RETADR;
 	}
 
 	/**

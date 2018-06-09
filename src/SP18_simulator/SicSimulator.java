@@ -26,6 +26,7 @@ public class SicSimulator {
 	public static final int F_REGISTER = 6;
 	public static final int PC_REGISTER = 8;
 	public static final int SW_REGISTER = 9;
+	public static final int INIT_RETADR = 0x4000;
 	
 	ResourceManager rMgr;
 	char[] currentInst;
@@ -56,13 +57,12 @@ public class SicSimulator {
 		int opcode = temp;
 		boolean extForm = false;
 		boolean pcRelative = false;
-		boolean usedXregister = false;
 		boolean immediate = false;
 		boolean indirect = false;
 		int address = 0;
 		int registerNum = 0;
 		int difference = 0;
-		char [] instruction;
+		char [] instruction = new char[1];
 		
 		if((temp & 2) == 2)
 		{
@@ -79,12 +79,11 @@ public class SicSimulator {
 		temp = (bytes[1] >>> 8);
 		extForm = (temp & 1) == 1;
 		pcRelative = (temp & 2) == 2;
-		usedXregister = (temp & 8) == 8;
 		
 		switch(opcode)
 		{
 			case 0x14:  // STL 명령어: L 레지스터 값을 해당 주소에 저장하는 명령어
-				logList.add("STL");
+				addLog("STL");
 				if(extForm)
 				{
 					logList.set(logList.size()-1, "+" + logList.get(logList.size()-1));
@@ -114,7 +113,7 @@ public class SicSimulator {
 				break;
 				
 			case 0x48: // JSUB 명령어: 주소값으로 들어온 곳으로 이동
-				logList.add("JSUB");
+				addLog("JSUB");
 				if(extForm)
 				{
 					logList.set(logList.size()-1, "+" + logList.get(logList.size()-1));
@@ -140,7 +139,7 @@ public class SicSimulator {
 				break;
 				
 			case 0x00:  ////////////////////////////////////////////////테스트 필요
-				logList.add("LDA");
+				addLog("LDA");
 				if(extForm)
 				{
 					logList.set(logList.size()-1, "+" + logList.get(logList.size()-1));
@@ -172,7 +171,7 @@ public class SicSimulator {
 				break;
 				
 			case 0x28: // COMP 명령어: A레지스터 값과 명령어에 주어진 값과 비교한다.
-				logList.add("COMP");
+				addLog("COMP");
 				if(extForm)
 				{
 					logList.set(logList.size()-1, "+" + logList.get(logList.size()-1));
@@ -204,7 +203,7 @@ public class SicSimulator {
 				break;
 		
 			case 0x4c: // RSUB 명령어: L 레지스터에 저장되어있는 주소로 이동(호출 시점 다음 명령어로 돌아감)
-				logList.add("RSUB");
+				addLog("RSUB");
 				rMgr.setRegister(PC_REGISTER, rMgr.getRegister(L_REGISTER));
 				break;
 			
@@ -238,7 +237,7 @@ public class SicSimulator {
 				break;
 			
 			case 0xdc: // WD 명령어: 지정된 기기(또는 파일)에 A 레지스터 하위 1바이트의 값을 출력한다.
-				logList.add("WD");
+				addLog("WD");
 				if(extForm)
 				{
 					logList.set(logList.size()-1, "+" + logList.get(logList.size()-1));
@@ -270,7 +269,7 @@ public class SicSimulator {
 				break;
 				
 			case 0x3c: ///////////////////////////////////////////////////////////테스트 필요
-				logList.add("J");
+				addLog("J");
 				if(extForm)
 				{
 					logList.set(logList.size()-1, "+" + logList.get(logList.size()-1));
@@ -307,7 +306,7 @@ public class SicSimulator {
 				break;
 			
 			case 0x0c:
-				logList.add("STA"); ///////////////////////////////////////////////테스트 필요
+				addLog("STA"); ///////////////////////////////////////////////테스트 필요
 				if(extForm)
 				{
 					logList.set(logList.size()-1, "+" + logList.get(logList.size()-1));
@@ -345,7 +344,7 @@ public class SicSimulator {
 				break;
 			
 			case 0x74:
-				logList.add("LDT"); /////////////////////////////////////////// 테스트 필요
+				addLog("LDT"); /////////////////////////////////////////// 테스트 필요
 				if(extForm)
 				{
 					logList.set(logList.size()-1, "+" + logList.get(logList.size()-1));
@@ -370,7 +369,7 @@ public class SicSimulator {
 				break;
 			
 			case 0xe0: // TD 명령어: 해당 이름의 기기(또는 파일)의 입출력 스트림을 확인한다.
-				logList.add("TD");
+				addLog("TD");
 				if(extForm)
 				{
 					logList.set(logList.size()-1, "+" + logList.get(logList.size()-1));
@@ -400,7 +399,7 @@ public class SicSimulator {
 				break;
 			
 			case 0xd8:  // RD 명령어: 해당 기기(또는 파일)에서 문자 하나를 읽어 A레지스터에 저장한다.
-				logList.add("RD");
+				addLog("RD");
 				if(extForm)
 				{
 					logList.set(logList.size()-1, "+" + logList.get(logList.size()-1));
@@ -430,7 +429,7 @@ public class SicSimulator {
 				break;
 				
 			case 0xa0:  // COMPR 명령어: 두 레지스터 값을 비교한다.
-				logList.add("COMPR");
+				addLog("COMPR");
 				instruction = rMgr.getMemory(rMgr.getRegister(PC_REGISTER), 2);
 				rMgr.setRegister(PC_REGISTER, rMgr.getRegister(PC_REGISTER) + 2);
 				
@@ -442,7 +441,7 @@ public class SicSimulator {
 				break;
 			
 			case 0x54:  // STCH 명령어: A레지스터 하위 1바이트에 저장된 문자를 지정된 주소에 저장한다.
-				logList.add("STCH");
+				addLog("STCH");
 				if(extForm)
 				{
 					logList.set(logList.size()-1, "+" + logList.get(logList.size()-1));
@@ -468,7 +467,7 @@ public class SicSimulator {
 				break;
 			
 			case 0xb8:  ////////////////////////////////////////////////////////////////테스트 필요
-				logList.add("TIXR");
+				addLog("TIXR");
 				instruction = rMgr.getMemory(rMgr.getRegister(PC_REGISTER), 2);
 				rMgr.setRegister(PC_REGISTER, rMgr.getRegister(PC_REGISTER) + 2);
 				
@@ -479,7 +478,7 @@ public class SicSimulator {
 				break;
 			
 			case 0x38:  // JLT 명령어: 비교 후 작다면 명시된 주소로 이동한다.
-				logList.add("JLT");
+				addLog("JLT");
 				if(extForm)
 				{
 					logList.set(logList.size()-1, "+" + logList.get(logList.size()-1));
@@ -516,7 +515,7 @@ public class SicSimulator {
 				break;
 			
 			case 0x10:  ///////////////////////////////////////////////테스트 필요
-				logList.add("STX");
+				addLog("STX");
 				if(extForm)
 				{
 					logList.set(logList.size()-1, "+" + logList.get(logList.size()-1));
@@ -545,7 +544,7 @@ public class SicSimulator {
 				break;
 				
 			case 0x30:  ///////////////////////////////////////////////////////////테스트 필요
-				logList.add("JEQ");
+				addLog("JEQ");
 				if(extForm)
 				{
 					logList.set(logList.size()-1, "+" + logList.get(logList.size()-1));
@@ -580,6 +579,8 @@ public class SicSimulator {
 				break;
 		}
 		
+		instList.add(new String(instruction, 0, instruction.length));
+		
 		System.out.println("PC: " + rMgr.getRegister(PC_REGISTER));
 		System.out.println(logList.get(logList.size()-1));
 		rMgr.printMemory();
@@ -594,7 +595,7 @@ public class SicSimulator {
 		{
 			oneStep();
 			
-			if(rMgr.getRegister(PC_REGISTER) == 0x4000)
+			if(rMgr.getRegister(PC_REGISTER) == INIT_RETADR)
 				break;
 		}
 	}
@@ -603,5 +604,18 @@ public class SicSimulator {
 	 * 각 단계를 수행할 때 마다 관련된 기록을 남기도록 한다.
 	 */
 	public void addLog(String log) {
-	}	
+		logList.add(log);
+	}
+	
+	/////////////////////////////////////////////////////////
+	
+	public List<String> getLogList()
+	{
+		return logList;
+	}
+	
+	public List<String> getInstList()
+	{
+		return instList;
+	}
 }

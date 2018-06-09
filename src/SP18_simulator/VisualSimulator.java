@@ -11,6 +11,7 @@ import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JList;
 import javax.swing.JPanel;
+import javax.swing.JScrollPane;
 import javax.swing.JTextField;
 import javax.swing.border.TitledBorder;
 
@@ -49,6 +50,8 @@ public class VisualSimulator extends JFrame{
 	private JTextField textTHex;
 	private JTextField textF;
 	private JTextField textDevice;
+	private JList<String> listInst;
+	private JList<String> listLog; 
 	
 	// 불러온 파일의 경로를 저장하는 String 변수
 	private String filePath;
@@ -315,9 +318,11 @@ public class VisualSimulator extends JFrame{
 		lblInstructions.setBounds(361, 302, 112, 21);
 		add(lblInstructions);
 		
-		JList listInst = new JList();
-		listInst.setBounds(356, 338, 174, 392);
-		add(listInst);
+		JScrollPane instScroll = new JScrollPane();
+		instScroll.setBounds(356, 338, 174, 392);
+		add(instScroll);
+		listInst = new JList<>();
+		instScroll.setViewportView(listInst);
 		
 		JLabel label_1 = new JLabel("사용중인 장치");
 		label_1.setBounds(547, 338, 131, 21);
@@ -360,9 +365,11 @@ public class VisualSimulator extends JFrame{
 		lblLog.setBounds(17, 758, 204, 21);
 		add(lblLog);
 		
-		JList listLog = new JList();
-		listLog.setBounds(17, 782, 664, 247);
-		add(listLog);
+		JScrollPane logScroll = new JScrollPane();
+		logScroll.setBounds(17, 782, 664, 247);
+		add(logScroll);
+		listLog = new JList<>();
+		logScroll.setViewportView(listLog);
 		
 		setVisible(true);
 	}
@@ -394,7 +401,11 @@ public class VisualSimulator extends JFrame{
 	 * 화면을 최신값으로 갱신하는 역할을 수행한다.
 	 */
 	public void update(){
+		String[] instStringList = sicSimulator.getInstList().toArray(new String[sicSimulator.getInstList().size()]);
+		listInst.setListData(instStringList);
 		
+		String[] logStringList = sicSimulator.getLogList().toArray(new String[sicSimulator.getLogList().size()]);
+		listLog.setListData(logStringList);
 	};
 	
 
