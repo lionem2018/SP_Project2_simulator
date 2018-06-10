@@ -397,6 +397,27 @@ public class ResourceManager
 	{
 		return progNameList.size();
 	}
+	
+	public int getCurrentSection()
+	{
+		return currentSection;
+	}
+	
+	public void setCurrentSection()
+	{
+		int  i = 0;
+		for(i = 0; i < getProgCount(); i++)
+		{
+			if(getProgStartAddr(i) <= getRegister(SicSimulator.PC_REGISTER) && getRegister(SicSimulator.PC_REGISTER) < getProgStartAddr(i) + getProgLength(i))
+			{
+				currentSection = i;
+				break;
+			}
+		}
+		
+		if(i == getProgCount())
+			currentSection = 0;
+	}
 
 	public void modifMemory(int locate, char[] data, int num, char modifMode)
 	{

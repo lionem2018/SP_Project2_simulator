@@ -359,6 +359,13 @@ public class VisualSimulator extends JFrame{
 		
 		JButton btnQuit = new JButton("종료");
 		btnQuit.setBounds(542, 702, 136, 29);
+		btnQuit.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e)
+			{
+				System.exit(1);
+			}
+		});
 		add(btnQuit);
 		
 		JLabel lblLog = new JLabel("Log (명령어 수행 관련):");
@@ -407,47 +414,57 @@ public class VisualSimulator extends JFrame{
 		String[] logStringList = sicSimulator.getLogList().toArray(new String[sicSimulator.getLogList().size()]);
 		listLog.setListData(logStringList);
 		
-		textProgName.setText(resourceManager.getProgName(0));
+		textProgName.setText(resourceManager.getProgName(resourceManager.getCurrentSection()));
 		
-		textStartAddrObProg.setText(String.valueOf(resourceManager.getProgStartAddr(0)));
+		if(resourceManager.getCurrentSection() != 0)
+		{
+			textStartAddrObProg.setText(String.format("%06X", resourceManager.getProgStartAddr(resourceManager.getCurrentSection()) - resourceManager.getProgLength(resourceManager.getCurrentSection()-1)));
+		
+			textFirstInstAddr.setText(String.format("%06X", resourceManager.getProgStartAddr(resourceManager.getCurrentSection()) - resourceManager.getProgLength(resourceManager.getCurrentSection()-1)));
+		}
+		else
+		{
+			textStartAddrObProg.setText(String.format("%06X", resourceManager.getProgStartAddr(resourceManager.getCurrentSection())));
+			
+			textFirstInstAddr.setText(String.format("%06X", resourceManager.getProgStartAddr(resourceManager.getCurrentSection())));
+		}
+		
 		
 		int progLength = 0;
 		for(int i = 0; i < resourceManager.getProgCount(); i++)
 			progLength += resourceManager.getProgLength(i);
-		textLengthProg.setText(String.valueOf(progLength));
+		textLengthProg.setText(Integer.toHexString(progLength));
 		
-		textFirstInstAddr.setText(String.valueOf(resourceManager.getProgStartAddr(0)));
-		
-		textStartAddrMemory.setText(String.valueOf(resourceManager.getProgStartAddr(0)));
+		textStartAddrMemory.setText(String.format("%06X", resourceManager.getProgStartAddr(resourceManager.getCurrentSection())));
 		
 		textADec.setText(String.format("%d", resourceManager.getRegister(SicSimulator.A_REGISTER)));
-		textAHex.setText(String.format("%X", resourceManager.getRegister(SicSimulator.A_REGISTER)));
+		textAHex.setText(String.format("%06X", resourceManager.getRegister(SicSimulator.A_REGISTER)));
 
 		textXDec.setText(String.format("%d", resourceManager.getRegister(SicSimulator.X_REGISTER)));
-		textXHex.setText(String.format("%X", resourceManager.getRegister(SicSimulator.X_REGISTER)));
+		textXHex.setText(String.format("%06X", resourceManager.getRegister(SicSimulator.X_REGISTER)));
 		
 		textLDec.setText(String.format("%d", resourceManager.getRegister(SicSimulator.L_REGISTER)));
-		textLHex.setText(String.format("%X", resourceManager.getRegister(SicSimulator.L_REGISTER)));
+		textLHex.setText(String.format("%06X", resourceManager.getRegister(SicSimulator.L_REGISTER)));
 		
 		textPCDec.setText(String.format("%d", resourceManager.getRegister(SicSimulator.PC_REGISTER)));
-		textPCHex.setText(String.format("%X", resourceManager.getRegister(SicSimulator.PC_REGISTER)));
+		textPCHex.setText(String.format("%06X", resourceManager.getRegister(SicSimulator.PC_REGISTER)));
 		
-		textSW.setText(String.format("%d", resourceManager.getRegister(SicSimulator.SW_REGISTER)));
+		textSW.setText(String.format("%06X", resourceManager.getRegister(SicSimulator.SW_REGISTER)));
 		
-		textTargetAddr.setText(String.valueOf(sicSimulator.getTargetAddr()));
+		textTargetAddr.setText(Integer.toHexString(sicSimulator.getTargetAddr()));
 		
 		textBDec.setText(String.format("%d", resourceManager.getRegister(SicSimulator.B_REGISTER)));
-		textBHex.setText(String.format("%X", resourceManager.getRegister(SicSimulator.B_REGISTER)));
+		textBHex.setText(String.format("%06X", resourceManager.getRegister(SicSimulator.B_REGISTER)));
 		
 		textSDec.setText(String.format("%d", resourceManager.getRegister(SicSimulator.S_REGISTER)));
-		textSHex.setText(String.format("%X", resourceManager.getRegister(SicSimulator.S_REGISTER)));
+		textSHex.setText(String.format("%06X", resourceManager.getRegister(SicSimulator.S_REGISTER)));
 		
 		textTDec.setText(String.format("%d", resourceManager.getRegister(SicSimulator.T_REGISTER)));
-		textTHex.setText(String.format("%X", resourceManager.getRegister(SicSimulator.T_REGISTER)));
+		textTHex.setText(String.format("%06X", resourceManager.getRegister(SicSimulator.T_REGISTER)));
 
 		textF.setText(String.format("%f", resourceManager.getFRegister()));
 		
-		textDevice.setText(sicSimulator.getDevice()); /////////////////////////////////////////////////////////////
+		textDevice.setText(sicSimulator.getDevice());
 	};
 	
 

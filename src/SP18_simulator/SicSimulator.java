@@ -127,6 +127,7 @@ public class SicSimulator {
 					
 					rMgr.setRegister(L_REGISTER, rMgr.getRegister(PC_REGISTER));
 					rMgr.setRegister(PC_REGISTER, targetAddr);
+					rMgr.setCurrentSection();
 				}
 				else
 				{
@@ -139,6 +140,7 @@ public class SicSimulator {
 					if(pcRelative)
 						targetAddr += rMgr.getRegister(PC_REGISTER);
 					rMgr.setRegister(PC_REGISTER, targetAddr);
+					rMgr.setCurrentSection();
 				}
 				break;
 				
@@ -212,6 +214,7 @@ public class SicSimulator {
 				rMgr.setRegister(PC_REGISTER, rMgr.getRegister(L_REGISTER));
 				
 				currentDevice = "";
+				rMgr.setCurrentSection();
 				break;
 			
 			case 0x50:  // LDCH 명령어: 해당 주소의 값을 A레지스터 하위 1바이트에 불러온다.
@@ -287,6 +290,7 @@ public class SicSimulator {
 					rMgr.setRegister(PC_REGISTER, rMgr.getRegister(PC_REGISTER) + 4);
 					
 					rMgr.setRegister(PC_REGISTER, targetAddr);
+					rMgr.setCurrentSection();
 				}
 				else
 				{
@@ -308,7 +312,8 @@ public class SicSimulator {
 						}
 						else
 							rMgr.setRegister(PC_REGISTER, targetAddr);
-					}	
+					}
+					rMgr.setCurrentSection();
 				}
 				break;
 			
@@ -500,6 +505,7 @@ public class SicSimulator {
 					{
 						rMgr.setRegister(PC_REGISTER, targetAddr);
 					}
+					rMgr.setCurrentSection();
 				}
 				else
 				{
@@ -517,8 +523,8 @@ public class SicSimulator {
 					{
 						rMgr.setRegister(PC_REGISTER, targetAddr);
 					}
+					rMgr.setCurrentSection();
 				}
-				
 				break;
 			
 			case 0x10:  ///////////////////////////////////////////////테스트 필요
@@ -566,6 +572,7 @@ public class SicSimulator {
 					{
 						rMgr.setRegister(PC_REGISTER, targetAddr);
 					}
+					rMgr.setCurrentSection();
 				}
 				else
 				{
@@ -581,8 +588,8 @@ public class SicSimulator {
 					{
 						rMgr.setRegister(PC_REGISTER, targetAddr);
 					}
+					rMgr.setCurrentSection();
 				}
-				
 				break;
 		}
 		
