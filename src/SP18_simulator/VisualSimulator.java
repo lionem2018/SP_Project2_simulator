@@ -451,7 +451,7 @@ public class VisualSimulator extends JFrame{
 		
 		textSW.setText(String.format("%06X", resourceManager.getRegister(SicSimulator.SW_REGISTER)));
 		
-		textTargetAddr.setText(Integer.toHexString(sicSimulator.getTargetAddr()));
+		textTargetAddr.setText(String.format("%06X", sicSimulator.getTargetAddr()));
 		
 		textBDec.setText(String.format("%d", resourceManager.getRegister(SicSimulator.B_REGISTER)));
 		textBHex.setText(String.format("%06X", resourceManager.getRegister(SicSimulator.B_REGISTER)));

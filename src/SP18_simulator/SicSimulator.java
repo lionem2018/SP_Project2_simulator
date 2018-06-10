@@ -307,11 +307,10 @@ public class SicSimulator {
 						
 						if(indirect & !immediate)
 						{
-							int pcValue = rMgr.byteToInt(rMgr.getMemory(targetAddr, 3));
-							rMgr.setRegister(PC_REGISTER, pcValue);
+							targetAddr = rMgr.byteToInt(rMgr.getMemory(targetAddr, 3));
 						}
-						else
-							rMgr.setRegister(PC_REGISTER, targetAddr);
+						
+						rMgr.setRegister(PC_REGISTER, targetAddr);
 					}
 					rMgr.setCurrentSection();
 				}
