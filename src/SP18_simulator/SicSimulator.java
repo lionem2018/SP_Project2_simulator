@@ -17,6 +17,8 @@ import java.util.*;
  *  + 제공하는 프로그램 구조의 개선방법을 제안하고 싶은 분들은 보고서의 결론 뒷부분에 첨부 바랍니다. 내용에 따라 가산점이 있을 수 있습니다.
  */
 public class SicSimulator {
+	
+	// 레지스터 번호 상수
 	public static final int A_REGISTER = 0;
 	public static final int X_REGISTER = 1;
 	public static final int L_REGISTER = 2;
@@ -26,13 +28,19 @@ public class SicSimulator {
 	public static final int F_REGISTER = 6;
 	public static final int PC_REGISTER = 8;
 	public static final int SW_REGISTER = 9;
+	
+	// 초기 L_Register 설정 값
 	public static final int INIT_RETADR = 0x4000;
 	
 	private ResourceManager rMgr;
-	private char[] currentInst;
+	
+	// 현재 명령어의 TargetAddress
 	private int targetAddr;
+	// 현재 명령어가 사용하고 있는 입출력 디바이스 정보
 	private String currentDevice;
 	
+	// GUI 컴포넌트를 통해 리스 형태로 보여줄 instrucion 리스트와
+	// 명령어 실행 형태를 보여줄 log 리스트
 	private List<String> instList = new ArrayList<>();
 	private List<String> logList = new ArrayList<>();
 	
@@ -56,6 +64,16 @@ public class SicSimulator {
 	 * 1개의 instruction이 수행된 모습을 보인다. 
 	 */
 	public void oneStep() {
+		// bytes: 명령어의 상위 2바이트를 메모리 상에서 가져옴
+		// temp: 단순 가져온 명령어를 분석하기 쉬운 int형으로 변환한 것
+		// opcode: 명령어의 OPCODE 값
+		// extForm: 4형식을 사용한 명령어인지 표시
+		// pcRelative: PC Relative addressing을 사용하는지 표시
+		// immediate: immediate addressing을 사용하는지 표시
+		// indirect: indirect addressing을 사용하는지 표시
+		// registerNum: 레지스터 명령어일 경우 피연산자 레지스터 번호
+		// difference: 두 값을 비교하는 명령어일 경우, 그 비교한 두 값의 차이
+		// instruction: 메모리 상에서 가져온 전체 명령어
 		char [] bytes = rMgr.getMemory(rMgr.getRegister(PC_REGISTER), 2);
 		int temp = (bytes[0] >>> 4) + (bytes[0] & 15);
 		int opcode = temp;
@@ -67,6 +85,8 @@ public class SicSimulator {
 		int difference = 0;
 		char [] instruction = new char[1];
 		
+		// 상위 1바이트를 가지고
+		// indirect나 immediate addressing 표시
 		if((temp & 2) == 2)
 		{
 			opcode -= 2;
@@ -79,16 +99,21 @@ public class SicSimulator {
 			immediate = true;
 		}
 		
+		// 두번째 바이트를 가지고
+		// 확장된 4형식 명령어를 사용하였는지,
+		// PC relative를 사용하였는지 표시
 		temp = (bytes[1] >>> 8);
 		extForm = (temp & 1) == 1;
 		pcRelative = (temp & 2) == 2;
+		// target address 초기화
 		targetAddr = 0;
 		
+		// 분석된 opcode의 값에 따라서 동작을 달리함
 		switch(opcode)
 		{
 			case 0x14:  // STL 명령어: L 레지스터 값을 해당 주소에 저장하는 명령어
 				addLog("STL");
-				if(extForm)
+				if(extForm)  // 4형식 명령어인 경우,
 				{
 					logList.set(logList.size()-1, "+" + logList.get(logList.size()-1));
 					instruction = rMgr.getMemory(rMgr.getRegister(PC_REGISTER), 4);
@@ -100,7 +125,7 @@ public class SicSimulator {
 					data = rMgr.intToChar(rMgr.getRegister(L_REGISTER));
 					rMgr.modifMemory(targetAddr + (3 - data.length), data, data.length, '+');
 				}
-				else
+				else  // 3형식 명령어인 경우
 				{
 					instruction = rMgr.getMemory(rMgr.getRegister(PC_REGISTER), 3);
 					targetAddr = ((instruction[1] & 15) << 8) + ((instruction[2] >>> 8) << 4) + (instruction[2] & 15);
@@ -113,12 +138,11 @@ public class SicSimulator {
 					data = rMgr.intToChar(rMgr.getRegister(L_REGISTER));
 					rMgr.modifMemory(targetAddr + (3 - data.length), data, data.length, '+');				
 				}
-				
 				break;
 				
 			case 0x48: // JSUB 명령어: 주소값으로 들어온 곳으로 이동
 				addLog("JSUB");
-				if(extForm)
+				if(extForm)  // 4형식 명령어인 경우,
 				{
 					logList.set(logList.size()-1, "+" + logList.get(logList.size()-1));
 					instruction = rMgr.getMemory(rMgr.getRegister(PC_REGISTER), 4);
@@ -129,7 +153,7 @@ public class SicSimulator {
 					rMgr.setRegister(PC_REGISTER, targetAddr);
 					rMgr.setCurrentSection();
 				}
-				else
+				else   // 3형식 명령어인 경우,
 				{
 					instruction = rMgr.getMemory(rMgr.getRegister(PC_REGISTER), 3);
 					targetAddr = ((instruction[1] & 15) << 8) + ((instruction[2] >> 8) << 4) + (instruction[2] & 15);
@@ -144,9 +168,9 @@ public class SicSimulator {
 				}
 				break;
 				
-			case 0x00:  ////////////////////////////////////////////////테스트 필요
+			case 0x00:  // LDA 명령어: 해당 피연산자 주소에 저장된 값을 A 레지스터로 가져옴
 				addLog("LDA");
-				if(extForm)
+				if(extForm)  // 4형식인 명령어인 경우,
 				{
 					logList.set(logList.size()-1, "+" + logList.get(logList.size()-1));
 					instruction = rMgr.getMemory(rMgr.getRegister(PC_REGISTER), 4);
@@ -156,20 +180,20 @@ public class SicSimulator {
 					char[] data = rMgr.getMemory(targetAddr, 3);
 					rMgr.setRegister(A_REGISTER, rMgr.byteToInt(data));	
 				}
-				else
+				else  // 3형식 명령어인 경우,
 				{
 					instruction = rMgr.getMemory(rMgr.getRegister(PC_REGISTER), 3);
 					targetAddr = ((instruction[1] & 15) << 8) + ((instruction[2] >> 8) << 4) + (instruction[2] & 15);
 					rMgr.setRegister(PC_REGISTER, rMgr.getRegister(PC_REGISTER) + 3);
 
-					if(pcRelative)
+					if(pcRelative) // PC relative를 사용하는 경우,
 					{
 						targetAddr += rMgr.getRegister(PC_REGISTER);
 					
 						char[] data = rMgr.getMemory(targetAddr, 3);
 						rMgr.setRegister(A_REGISTER, rMgr.byteToInt(data));
 					}
-					else if(immediate)
+					else if(immediate)  // immediate를 사용하는 경우,
 					{
 						rMgr.setRegister(A_REGISTER, targetAddr);
 					}
@@ -178,7 +202,7 @@ public class SicSimulator {
 				
 			case 0x28: // COMP 명령어: A레지스터 값과 명령어에 주어진 값과 비교한다.
 				addLog("COMP");
-				if(extForm)
+				if(extForm)  // 4형식 명령어를 사용하는 경우,
 				{
 					logList.set(logList.size()-1, "+" + logList.get(logList.size()-1));
 					instruction = rMgr.getMemory(rMgr.getRegister(PC_REGISTER), 4);
@@ -191,9 +215,8 @@ public class SicSimulator {
 						rMgr.setRegister(SW_REGISTER, difference);
 						System.out.println("SW: " + rMgr.getRegister(SW_REGISTER));
 					}
-
 				}
-				else
+				else  // 3형식 명령어를 사용하는 경우,
 				{
 					instruction = rMgr.getMemory(rMgr.getRegister(PC_REGISTER), 3);
 					targetAddr = ((instruction[1] & 15) << 8) + ((instruction[2] >>> 8) << 4) + (instruction[2] & 15);
@@ -219,7 +242,7 @@ public class SicSimulator {
 			
 			case 0x50:  // LDCH 명령어: 해당 주소의 값을 A레지스터 하위 1바이트에 불러온다.
 				logList.add("LDCH");
-				if(extForm)
+				if(extForm)  // 4형식 명령어를 사용하는 경우,
 				{
 					logList.set(logList.size()-1, "+" + logList.get(logList.size()-1));
 					instruction = rMgr.getMemory(rMgr.getRegister(PC_REGISTER), 4);
@@ -231,13 +254,13 @@ public class SicSimulator {
 					System.out.println((char)rMgr.getRegister(A_REGISTER));
 					
 				}
-				else
+				else // 3형식 명령어를 사용하는 경우,
 				{
 					instruction = rMgr.getMemory(rMgr.getRegister(PC_REGISTER), 3);
 					targetAddr = ((instruction[1] & 15) << 8) + ((instruction[2] >>> 8) << 4) + (instruction[2] & 15);
 					rMgr.setRegister(PC_REGISTER, rMgr.getRegister(PC_REGISTER) + 3);
 					
-					if(pcRelative)
+					if(pcRelative)  // PC relative를 사용하는 경우,
 						targetAddr += rMgr.getRegister(PC_REGISTER);
 					char[] data = rMgr.getMemory(targetAddr + rMgr.getRegister(X_REGISTER), 1);
 					rMgr.setRegister(A_REGISTER, rMgr.byteToInt(data));
@@ -248,7 +271,7 @@ public class SicSimulator {
 			
 			case 0xdc: // WD 명령어: 지정된 기기(또는 파일)에 A 레지스터 하위 1바이트의 값을 출력한다.
 				addLog("WD");
-				if(extForm)
+				if(extForm)  // 4형식 명령어를 사용하는 경우,
 				{
 					logList.set(logList.size()-1, "+" + logList.get(logList.size()-1));
 					instruction = rMgr.getMemory(rMgr.getRegister(PC_REGISTER), 4);
@@ -261,7 +284,7 @@ public class SicSimulator {
 					rMgr.writeDevice(deviceName);
 					System.out.print(Integer.toBinaryString(rMgr.getRegister(A_REGISTER)));
 				}
-				else
+				else  // 3형식 명령어를 사용하는 경우,
 				{
 					instruction = rMgr.getMemory(rMgr.getRegister(PC_REGISTER), 3);
 					targetAddr = ((instruction[1] & 15) << 8) + ((instruction[2] >>> 8) << 4) + (instruction[2] & 15);
@@ -278,29 +301,28 @@ public class SicSimulator {
 				
 				break;
 				
-			case 0x3c: ///////////////////////////////////////////////////////////테스트 필요
+			case 0x3c: // 피연산자로 들어온 주소로 프로그램 흐름을 이동한다.
 				addLog("J");
-				if(extForm)
+				if(extForm)  // 4형식인 경우,
 				{
 					logList.set(logList.size()-1, "+" + logList.get(logList.size()-1));
 					instruction = rMgr.getMemory(rMgr.getRegister(PC_REGISTER), 4);
 					targetAddr = ((instruction[1] & 15) << 16) + ((instruction[2] >> 8) << 12) + ((instruction[2] & 15) << 8) + ((instruction[3] >> 8) << 4) + (instruction[3] & 15);
-					if((instruction[1] & 15) == 15)
-						targetAddr += (0xFFF << 20);
+					if((instruction[1] & 15) == 15)  // 음수인 경우(상위 8비트가 F인 경우)
+						targetAddr += (0xFFF << 20); // 상위 나머지 비트들도 F로 채워 음수값을 만든다.
 					rMgr.setRegister(PC_REGISTER, rMgr.getRegister(PC_REGISTER) + 4);
 					
 					rMgr.setRegister(PC_REGISTER, targetAddr);
 					rMgr.setCurrentSection();
 				}
-				else
+				else  // 3형식인 경우,
 				{
 					instruction = rMgr.getMemory(rMgr.getRegister(PC_REGISTER), 3);
 					targetAddr = ((instruction[1] & 15) << 8) + ((instruction[2] >> 8) << 4) + (instruction[2] & 15);
-					if((instruction[1] & 15) == 15)
-						targetAddr += (0xFFFFF << 12);
+					if((instruction[1] & 15) == 15)   // 음수인 경우(상위 8비트가 F인 경우)
+						targetAddr += (0xFFFFF << 12);  // 상위 나머지 비트들도 F로 채워 음수값을 만든다.
 					rMgr.setRegister(PC_REGISTER, rMgr.getRegister(PC_REGISTER) + 3);
 
-					System.out.println(Integer.toHexString(targetAddr));
 					if(pcRelative)
 					{
 						targetAddr += rMgr.getRegister(PC_REGISTER);
@@ -317,8 +339,8 @@ public class SicSimulator {
 				break;
 			
 			case 0x0c:
-				addLog("STA"); ///////////////////////////////////////////////테스트 필요
-				if(extForm)
+				addLog("STA"); //STA 명령어: A 레지스터에 저장된 값을 지정된 주소로 저장한다.
+				if(extForm)  // 4형식 명령어인 경우,
 				{
 					logList.set(logList.size()-1, "+" + logList.get(logList.size()-1));
 					instruction = rMgr.getMemory(rMgr.getRegister(PC_REGISTER), 4);
@@ -330,7 +352,7 @@ public class SicSimulator {
 					data = rMgr.intToChar(rMgr.getRegister(A_REGISTER));
 					rMgr.modifMemory(targetAddr + (3 - data.length), data, data.length, '+');
 				}
-				else
+				else  // 3형식 명령어인 경우,
 				{
 					instruction = rMgr.getMemory(rMgr.getRegister(PC_REGISTER), 3);
 					targetAddr = ((instruction[1] & 15) << 8) + ((instruction[2] >> 8) << 4) + (instruction[2] & 15);
@@ -354,8 +376,8 @@ public class SicSimulator {
 				rMgr.setRegister(registerNum, 0);
 				break;
 			
-			case 0x74:
-				addLog("LDT"); /////////////////////////////////////////// 테스트 필요
+			case 0x74:  // LDT 명령어: 해당 피연산자의 값을 T 레지스터에 저장한다.
+				addLog("LDT"); 
 				if(extForm)
 				{
 					logList.set(logList.size()-1, "+" + logList.get(logList.size()-1));
@@ -381,7 +403,7 @@ public class SicSimulator {
 			
 			case 0xe0: // TD 명령어: 해당 이름의 기기(또는 파일)의 입출력 스트림을 확인한다.
 				addLog("TD");
-				if(extForm)
+				if(extForm)  // 4형식 명령어인 경우,
 				{
 					logList.set(logList.size()-1, "+" + logList.get(logList.size()-1));
 					instruction = rMgr.getMemory(rMgr.getRegister(PC_REGISTER), 4);
@@ -393,7 +415,7 @@ public class SicSimulator {
 					currentDevice = deviceName;
 					rMgr.testDevice(deviceName);
 				}
-				else
+				else  // 3형식 명령어인 경우,
 				{
 					instruction = rMgr.getMemory(rMgr.getRegister(PC_REGISTER), 3);
 					targetAddr = ((instruction[1] & 15) << 8) + ((instruction[2] >>> 8) << 4) + (instruction[2] & 15);
@@ -421,7 +443,6 @@ public class SicSimulator {
 					char[] deviceInfo = rMgr.getMemory(targetAddr, 1);
 					String deviceName = String.format("%X%X", deviceInfo[0] >> 8, deviceInfo[0] & 15);
 					rMgr.setRegister(A_REGISTER, rMgr.readDevice(deviceName));
-					System.out.println((char)rMgr.getRegister(A_REGISTER));
 				}
 				else
 				{
@@ -434,9 +455,7 @@ public class SicSimulator {
 					char[] deviceInfo = rMgr.getMemory(targetAddr, 1);
 					String deviceName = String.format("%X%X", deviceInfo[0] >> 8, deviceInfo[0] & 15);
 					rMgr.setRegister(A_REGISTER, rMgr.readDevice(deviceName));
-					System.out.println((char)rMgr.getRegister(A_REGISTER));
-				}
-				
+				}				
 				break;
 				
 			case 0xa0:  // COMPR 명령어: 두 레지스터 값을 비교한다.
@@ -448,12 +467,11 @@ public class SicSimulator {
 				int compareRegister = instruction[1] & 15;
 				difference = rMgr.getRegister(registerNum) - rMgr.getRegister(compareRegister);
 				rMgr.setRegister(SW_REGISTER, difference);
-				System.out.println("SW: " + rMgr.getRegister(SW_REGISTER));
 				break;
 			
 			case 0x54:  // STCH 명령어: A레지스터 하위 1바이트에 저장된 문자를 지정된 주소에 저장한다.
 				addLog("STCH");
-				if(extForm)
+				if(extForm)  // 4형식 명령어인 경우,
 				{
 					logList.set(logList.size()-1, "+" + logList.get(logList.size()-1));
 					instruction = rMgr.getMemory(rMgr.getRegister(PC_REGISTER), 4);
@@ -461,10 +479,9 @@ public class SicSimulator {
 					rMgr.setRegister(PC_REGISTER, rMgr.getRegister(PC_REGISTER) + 4);
 					
 					char [] data = rMgr.intToChar(rMgr.getRegister(A_REGISTER) & 255);
-					System.out.println(Integer.toBinaryString(data[0]));
 					rMgr.setMemory(targetAddr + rMgr.getRegister(X_REGISTER), data, 1);
 				}
-				else
+				else  // 3형식 명령어인 경우,
 				{
 					instruction = rMgr.getMemory(rMgr.getRegister(PC_REGISTER), 3);
 					targetAddr = ((instruction[1] & 15) << 8) + ((instruction[2] >> 8) << 4) + (instruction[2] & 15);
@@ -477,7 +494,7 @@ public class SicSimulator {
 				}
 				break;
 			
-			case 0xb8:  ////////////////////////////////////////////////////////////////테스트 필요
+			case 0xb8:  //TIXR 명령어: X 레지스터 값을 1 올리고 피연산자로 들어온 레지스터의 값과 비교한다.
 				addLog("TIXR");
 				instruction = rMgr.getMemory(rMgr.getRegister(PC_REGISTER), 2);
 				rMgr.setRegister(PC_REGISTER, rMgr.getRegister(PC_REGISTER) + 2);
@@ -490,7 +507,7 @@ public class SicSimulator {
 			
 			case 0x38:  // JLT 명령어: 비교 후 작다면 명시된 주소로 이동한다.
 				addLog("JLT");
-				if(extForm)
+				if(extForm)  // 4형식 명령어인 경우,
 				{
 					logList.set(logList.size()-1, "+" + logList.get(logList.size()-1));
 					instruction = rMgr.getMemory(rMgr.getRegister(PC_REGISTER), 4);
@@ -506,7 +523,7 @@ public class SicSimulator {
 					}
 					rMgr.setCurrentSection();
 				}
-				else
+				else  // 3형식 명령어인 경우,
 				{
 					instruction = rMgr.getMemory(rMgr.getRegister(PC_REGISTER), 3);
 					targetAddr = ((instruction[1] & 15) << 8) + ((instruction[2] >>> 8) << 4) + (instruction[2] & 15);
@@ -526,9 +543,9 @@ public class SicSimulator {
 				}
 				break;
 			
-			case 0x10:  ///////////////////////////////////////////////테스트 필요
+			case 0x10:  // STX 명령어: X레지스터의 값을 지정된 주소에 저장한다.
 				addLog("STX");
-				if(extForm)
+				if(extForm)  // 4형식 명령어인 경우,
 				{
 					logList.set(logList.size()-1, "+" + logList.get(logList.size()-1));
 					instruction = rMgr.getMemory(rMgr.getRegister(PC_REGISTER), 4);
@@ -540,7 +557,7 @@ public class SicSimulator {
 					data = rMgr.intToChar(rMgr.getRegister(X_REGISTER));
 					rMgr.modifMemory(targetAddr + (3 - data.length), data, data.length, '+');
 				}
-				else
+				else  // 3형식 명령어인 경우,
 				{
 					instruction = rMgr.getMemory(rMgr.getRegister(PC_REGISTER), 3);
 					targetAddr = ((instruction[1] & 15) << 8) + ((instruction[2] >>> 8) << 4) + (instruction[2] & 15);
@@ -555,9 +572,9 @@ public class SicSimulator {
 				}
 				break;
 				
-			case 0x30:  ///////////////////////////////////////////////////////////테스트 필요
+			case 0x30:  // JEQ 명령어: 비교한 두 값이 같은 경우 지정된 주소로 이동한다.
 				addLog("JEQ");
-				if(extForm)
+				if(extForm)  // 4형식 명령어인 경우,
 				{
 					logList.set(logList.size()-1, "+" + logList.get(logList.size()-1));
 					instruction = rMgr.getMemory(rMgr.getRegister(PC_REGISTER), 4);
@@ -573,7 +590,7 @@ public class SicSimulator {
 					}
 					rMgr.setCurrentSection();
 				}
-				else
+				else // 3형식 명령어인 경우,
 				{
 					instruction = rMgr.getMemory(rMgr.getRegister(PC_REGISTER), 3);
 					targetAddr = ((instruction[1] & 15) << 8) + ((instruction[2] >>> 8) << 4) + (instruction[2] & 15);
@@ -592,6 +609,8 @@ public class SicSimulator {
 				break;
 		}
 		
+		// instruction 출력을 위해 4비트에 해당하는 값을 문자로 다시 변환
+		// 변환한 instruction을 리스트에 추가한다.
 		char[] outputInst = new char[instruction.length*2];
 		for(int  i = 0; i < instruction.length; i++)
 		{
@@ -605,10 +624,6 @@ public class SicSimulator {
 				outputInst[i * 2 + 1] += 7;
 		}
 		instList.add(new String(outputInst, 0, outputInst.length));
-		
-		System.out.println("PC: " + rMgr.getRegister(PC_REGISTER));
-		System.out.println(logList.get(logList.size()-1));
-		rMgr.printMemory();
 	}
 	
 	/**
@@ -620,6 +635,7 @@ public class SicSimulator {
 		{
 			oneStep();
 			
+			// 초기 지정한 L 레지스터 값과 PC 레지스터 값이 같아지면 작동을 멈춘다.
 			if(rMgr.getRegister(PC_REGISTER) == INIT_RETADR)
 				break;
 		}
@@ -632,23 +648,37 @@ public class SicSimulator {
 		logList.add(log);
 	}
 	
-	/////////////////////////////////////////////////////////
-	
+	/**
+	 * GUI 컴포넌트 출력을 위해 log 리스트를 반환한다.
+	 * @return log 리스트
+	 */
 	public List<String> getLogList()
 	{
 		return logList;
 	}
 	
+	/**
+	 * GUI 컴포넌트 출력을 위해 instruction 리스트를 반환한다.
+	 * @return instruction 리스트
+	 */
 	public List<String> getInstList()
 	{
 		return instList;
 	}
 	
+	/**
+	 * 현재 명령어의 target address 값을 반환한다.
+	 * @return target address
+	 */
 	public int getTargetAddr()
 	{
 		return targetAddr; 
 	}
 	
+	/**
+	 * 현재 사용중인 입출력 장치 정보를 반환한다.
+	 * @return 입출력 장치 이름
+	 */
 	public String getDevice()
 	{
 		return currentDevice;

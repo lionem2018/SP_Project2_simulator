@@ -1,6 +1,5 @@
 package SP18_simulator;
 
-import java.awt.EventQueue;
 import java.awt.FileDialog;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -56,6 +55,8 @@ public class VisualSimulator extends JFrame{
 	// 불러온 파일의 경로를 저장하는 String 변수
 	private String filePath;
 	
+	// 생성자에서 GUI 컴포넌트들을 위치시키고
+	// 적절한 이벤트 리스너를 지정한다.
 	public VisualSimulator()
 	{
 		
@@ -64,11 +65,6 @@ public class VisualSimulator extends JFrame{
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		setLayout(null);
 		
-		/*
-		frame = new JFrame();
-		frame.setBounds(100, 100, 720, 1100);
-		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		*/
 		JLabel labelFilename = new JLabel("FileName:");
 		labelFilename.setBounds(22, 20, 78, 21);
 		add(labelFilename);
@@ -339,6 +335,9 @@ public class VisualSimulator extends JFrame{
 			@Override
 			public void actionPerformed(ActionEvent e)
 			{
+				// 1 step 실행 버튼을 누른 경우,
+				// 하나의 명령어를 실행시키는 oneStep() 메소드 호출 후,
+				// 변경된 값을 GUI에 보여주기 위해 update() 메소드를 호출한다.
 				oneStep();
 				update();
 			}
@@ -351,6 +350,9 @@ public class VisualSimulator extends JFrame{
 			@Override
 			public void actionPerformed(ActionEvent e)
 			{
+				// all step 실행 버튼을 누른 경우,
+				// 모든 명령어를 실행시키는 allStep() 메소드 호출 후,
+				// 변경된 값을 GUI에 보여주기 위해 update() 메소드를 호출한다.
 				allStep();
 				update();
 			}
@@ -363,6 +365,8 @@ public class VisualSimulator extends JFrame{
 			@Override
 			public void actionPerformed(ActionEvent e)
 			{
+				// 종료 버튼을 누른 경우,
+				// 시뮬레이터 프로그램을 종료시킨다.
 				System.exit(1);
 			}
 		});
@@ -408,14 +412,19 @@ public class VisualSimulator extends JFrame{
 	 * 화면을 최신값으로 갱신하는 역할을 수행한다.
 	 */
 	public void update(){
+		
+		// 실행한 명령어 리스트를 출력한다.
 		String[] instStringList = sicSimulator.getInstList().toArray(new String[sicSimulator.getInstList().size()]);
 		listInst.setListData(instStringList);
 		
+		// 실행한 명령어 log를 출력한다.
 		String[] logStringList = sicSimulator.getLogList().toArray(new String[sicSimulator.getLogList().size()]);
 		listLog.setListData(logStringList);
 		
+		// 현재 실행중인 컨트롤 섹션 프로그램의 이름을 출력한다.
 		textProgName.setText(resourceManager.getProgName(resourceManager.getCurrentSection()));
 		
+		// 현재 실행중인 컨트롤 섹션 프로그램의 실행 시작 주소를 출력한다.
 		if(resourceManager.getCurrentSection() != 0)
 		{
 			textStartAddrObProg.setText(String.format("%06X", resourceManager.getProgStartAddr(resourceManager.getCurrentSection()) - resourceManager.getProgLength(resourceManager.getCurrentSection()-1)));
@@ -430,13 +439,16 @@ public class VisualSimulator extends JFrame{
 		}
 		
 		
+		// 해당 프로그램의 총 길이를 출력한다.
 		int progLength = 0;
 		for(int i = 0; i < resourceManager.getProgCount(); i++)
 			progLength += resourceManager.getProgLength(i);
 		textLengthProg.setText(Integer.toHexString(progLength));
 		
+		// 해당 섹션 프로그램의 메모리상에서의 실행 시작 주소를 출력한다.
 		textStartAddrMemory.setText(String.format("%06X", resourceManager.getProgStartAddr(resourceManager.getCurrentSection())));
 		
+		//각 레지스터의 값을 출력한다.
 		textADec.setText(String.format("%d", resourceManager.getRegister(SicSimulator.A_REGISTER)));
 		textAHex.setText(String.format("%06X", resourceManager.getRegister(SicSimulator.A_REGISTER)));
 
@@ -464,6 +476,7 @@ public class VisualSimulator extends JFrame{
 
 		textF.setText(String.format("%f", resourceManager.getFRegister()));
 		
+		// 입출력으로 장치를 사용할 경우, 사용중인 장치 정보를 출력한다.
 		textDevice.setText(sicSimulator.getDevice());
 	};
 	

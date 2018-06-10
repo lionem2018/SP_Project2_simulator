@@ -10,8 +10,12 @@ public class SymbolTable
 	ArrayList<String> symbolList;
 	ArrayList<Integer> addressList;
 	// 기타 literal, external 선언 및 처리방법을 구현한다.
+	
+	// 수정 사이즈를 담은 리스트
 	ArrayList<Integer> modifSizeList;
+	// 수정 모드, 즉 부호를 담은 리스트
 	ArrayList<Character> modifModeList;
+	// 수정할 섹션 프로그램 번호를 담은 리스트
 	ArrayList<Integer> sectionList;
 	
 
@@ -47,6 +51,14 @@ public class SymbolTable
 
 	}
 	
+	/**
+	 * 수정을 위한 extab에 정보를 추가하는 메소드이다.
+	 * @param symbol 추가할 심볼
+	 * @param address 수정할 주소
+	 * @param modifSize 수정할 사이즈
+	 * @param modifMode 수정 모드, 즉 부호
+	 * @param section 수정할 컨트롤 섹션
+	 */
 	public void putExSymbol(String symbol, int address, int modifSize, char modifMode, int section)
 	{
 		symbolList.add(symbol);
@@ -113,42 +125,63 @@ public class SymbolTable
 		return address;
 	}
 	
+	/**
+	 * 심볼 테이블의 사이즈를 구한다
+	 * @return 테이블 사이즈
+	 */
 	public int size()
 	{
 		return symbolList.size();
 	}
 	
+	/**
+	 * 해당 인덱스의 심볼을 가져온다.
+	 * @param index 가져올 심볼 인덱스
+	 * @return 심볼 이름
+	 */
 	public String getSymbol(int index)
 	{
 		return symbolList.get(index);
 	}
 	
+	/**
+	 * 해당 인덱스의 주소를 가져온다.
+	 * @param sectionNum 가져올 주소 인덱스
+	 * @return 주소
+	 */
 	public int getaddress(int index)
 	{
 		return addressList.get(index);
 	}
 	
+	/**
+	 * 해당 인덱스의 수정 사이즈를 가져온다.
+	 * @param sectionNum 가져올 수정 사이즈 인덱스
+	 * @return 수정 사이즈
+	 */
 	public int getModifSize(int index)
 	{
 		return modifSizeList.get(index);
 	}
 	
+	/**
+	 * 해당 인덱스의 수정 모드 가져온다.
+	 * @param sectionNum 가져올 수정 모드 인덱스
+	 * @return 수정 모드
+	 */
 	public char getModifMode(int index)
 	{
 		return modifModeList.get(index);
 	}
 	
+	/**
+	 * 해당 인덱스의 섹션을 가져온다.
+	 * @param sectionNum 가져올 섹션 인덱스
+	 * @return 섹션
+	 */
 	public int getSection(int index)
 	{
 		return sectionList.get(index);
 	}
 	
-	public void print()
-	{
-		for(int i = 0; i < symbolList.size(); i++)
-		{
-			System.out.println(symbolList.get(i) + " " + addressList.get(i) + " " + modifSizeList.get(i) + " " + modifModeList.get(i));
-		}
-	}
-
 }

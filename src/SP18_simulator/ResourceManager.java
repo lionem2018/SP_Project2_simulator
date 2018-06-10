@@ -38,10 +38,13 @@ public class ResourceManager
 	SymbolTable symtabList = new SymbolTable();
 	// 이외에도 필요한 변수 선언해서 사용할 것.
 	
+	// 현재 명령어가 실행중인 컨트롤 섹션을 표시한다.
 	private int currentSection;
 	private int readPointer = 0;
+	// 수정을 위해 수정 정보를 저장하는 extab이다.
 	SymbolTable extabList = new SymbolTable();
 
+	// 각각 프로그램 이름, 프로그램 길이, 프로그램 시작 주소를 저장하는 리스트이다.
 	private List<String> progNameList = new ArrayList<>();
 	private List<Integer> progLengthList = new ArrayList<>();
 	private List<Integer> progStartAddrList = new ArrayList<>();
@@ -133,15 +136,13 @@ public class ResourceManager
 	}
 
 	/**
-	 * 디바이스로부터 원하는 개수만큼의 글자를 읽어들인다. RD명령어를 사용했을 때 호출되는 함수.
+	 * 디바이스로부터 한 글자를 읽어들인다. RD명령어를 사용했을 때 호출되는 함수.
 	 * 
 	 * @param devName
 	 *            디바이스의 이름
-	 * @param num
-	 *            가져오는 글자의 개수
 	 * @return 가져온 데이터
 	 */
-	public char readDevice(String devName) /////////////////////////////////////////////////////////////
+	public char readDevice(String devName)
 	{
 		char input = ' ';
 		try
@@ -167,7 +168,6 @@ public class ResourceManager
 		}
 		catch (FileNotFoundException e)
 		{
-			// 파일을 찾지 못했을 때에 대한 핸들링
 		}
 		catch (IOException e)
 		{
@@ -178,14 +178,10 @@ public class ResourceManager
 	}
 
 	/**
-	 * 디바이스로 원하는 개수 만큼의 글자를 출력한다. WD명령어를 사용했을 때 호출되는 함수.
+	 * 디바이스로 A 레지스터에 저장된 한 글자를 출력한다. WD명령어를 사용했을 때 호출되는 함수.
 	 * 
 	 * @param devName
 	 *            디바이스의 이름
-	 * @param data
-	 *            보내는 데이터
-	 * @param num
-	 *            보내는 글자의 개수
 	 */
 	public void writeDevice(String devName)
 	{
@@ -264,6 +260,10 @@ public class ResourceManager
 
 	}
 	
+	/**
+	 * F 레지스터 값을 반환한다.
+	 * @return F 레지스터 값
+	 */
 	public double getFRegister()
 	{
 		return register_F;
@@ -355,12 +355,21 @@ public class ResourceManager
 		return result;
 	}
 
-	///////////////////////////////////////////////////
+	/**
+	 * 프로그램 이름을 저장한다.
+	 * @param progName 프로그램 이름
+	 * @param sectionNum 저장할 컨트롤 섹션
+	 */
 	public void setProgName(String progName, int sectionNum)
 	{
 		progNameList.add(sectionNum, progName);
 	}
-
+	
+	/**
+	 * 프로그램 시작주소를 저장한다.
+	 * @param progName 프로그램 시작주소
+	 * @param sectionNum 저장할 컨트롤 섹션
+	 */
 	public void setProgStartAddr(String startAddr, int sectionNum)
 	{
 		int addr = Integer.parseInt(startAddr, 16);
@@ -373,36 +382,66 @@ public class ResourceManager
 		progStartAddrList.add(sectionNum, addr);
 	}
 
+	/**
+	 * 프로그램 길이를 저장한다.
+	 * @param progName 프로그램 저장
+	 * @param sectionNum 저장할 컨트롤 섹션
+	 */
 	public void setProgLength(String length, int sectionNum)
 	{
 		progLengthList.add(sectionNum, Integer.parseInt(length, 16));
 	}
 
+	/**
+	 * 해당 컨트롤 섹션 프로그램 시작 주소를 가져온다.
+	 * @param sectionNum 컨트롤 섹션 번호
+	 * @return
+	 */
 	public int getProgStartAddr(int sectionNum)
 	{
 		return progStartAddrList.get(sectionNum);
 	}
 	
+	/**
+	 * 해당 컨트롤 섹션 프로그램 이름을 가져온다.
+	 * @param sectionNum 컨트롤 섹션 번호
+	 * @return
+	 */
 	public String getProgName(int sectionNum)
 	{
 		return progNameList.get(sectionNum);
 	}
 	
+	/**
+	 * 해당 컨트롤 섹션 프로그램 길이를 가져온다.
+	 * @param sectionNum 컨트롤 섹션 번호
+	 * @return
+	 */
 	public int getProgLength(int section)
 	{
 		return progLengthList.get(section);
 	}
 	
+	/**
+	 * 프로그램의 컨트롤 섹션 개수를 반환한다.
+	 */
 	public int getProgCount()
 	{
 		return progNameList.size();
 	}
 	
+	/**
+	 * 현재 수행중인 프로그램 컨트롤 섹션은 반환한다.
+	 * @return 프로그램 컨트롤 섹션 번호
+	 */
 	public int getCurrentSection()
 	{
 		return currentSection;
 	}
 	
+	/**
+	 * 현재 수행중인 컨트롤 섹션 번호를 지정한다.
+	 */
 	public void setCurrentSection()
 	{
 		int  i = 0;
@@ -419,6 +458,13 @@ public class ResourceManager
 			currentSection = 0;
 	}
 
+	/**
+	 * 메모리에서 명령어를 수정한다. modifMode의 부호에 따라 값을 더하거나 뺀다.
+	 * @param locate 수정 시작할 주소
+	 * @param data 수정할 데이터
+	 * @param num 수정할 개수
+	 * @param modifMode 수정모드, 부호를 가짐
+	 */
 	public void modifMemory(int locate, char[] data, int num, char modifMode)
 	{
 		if (modifMode == '+')
@@ -435,35 +481,5 @@ public class ResourceManager
 				memory[i] -= data[i - locate];
 			}
 		}
-	}
-
-	public void printMemory()
-	{
-		File file = new File("test.txt");
-		try
-		{
-			BufferedWriter bufWriter = new BufferedWriter(new FileWriter(file));
-			for (int i = 0; i < memory.length; i++)
-			{
-
-				if (i % 4 == 0)
-					bufWriter.write(" ");
-				if (i % 16 == 0)
-				{
-					bufWriter.newLine();
-					bufWriter.write(String.format("%04X ", i));
-				}
-
-				bufWriter.write(Integer.toHexString(memory[i] >> 8));
-				bufWriter.write(Integer.toHexString(memory[i] & 255));
-			}
-			bufWriter.close();
-		}
-		catch (IOException e)
-		{
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-
 	}
 }

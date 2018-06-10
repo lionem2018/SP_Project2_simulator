@@ -14,6 +14,7 @@ public class SicLoader
 {
 	ResourceManager rMgr;
 
+	// 현재 로드하는 컨트롤 섹션을 표시한다.
 	private int currentSection;
 
 	public SicLoader(ResourceManager resourceManager)
@@ -41,17 +42,23 @@ public class SicLoader
 	public void load(File objectCode){
 		try
 		{
+			// 인자로 들어온 이름의 파일을 열어 오브젝트 코드를 읽어 들인다.
 			FileReader fileReader = new FileReader(objectCode);
 			BufferedReader bufReader = new BufferedReader(fileReader);
 			String line = "";
 			
+			// 파일의 끝에 도달할 때까지 한 줄씩 읽어 들인다.
 			while((line = bufReader.readLine()) != null)
 			{
+				// 읽어들인 문자열이 비어있다면 다음 라인을 읽는다.
 				if(line.length() == 0)
 					continue;
 				
+				// 문자열의 처음 글자로 들어가 있는 레코드 표시로 처리를 달리한다.
 				switch(line.charAt(0))
 				{
+					// Header Record인 경우,
+					// 해당 섹션 프로그램의 이름과 시작주소, 프로그램 길이, 프로그램의 메모리상의 시작주소 등을 저장한다.
 					case 'H':
 						int progNameLength = line.length()-13;
 						String programName = line.substring(1, progNameLength);
@@ -63,6 +70,8 @@ public class SicLoader
 						rMgr.symtabList.putSymbol(programName, rMgr.getProgStartAddr(currentSection));
 						break;
 					
+					// Define Record인 경우,
+					// 해당 symbol과 그 주소를 테이블에 저장한다.
 					case 'D':
 						int symNameLength = 0;
 						int symNameStart = 1;
@@ -83,11 +92,14 @@ public class SicLoader
 							symNameLength++;
 						}
 						break;
-						
+					
+					// Refer Record인 경우, 넘어간다.
 					case 'R':
-						
 						break;
-						
+					
+					// Text Record인 경우,
+					// 시작주소부터 명시된 길이만큼 메모리에 오브젝트 코드를 로드한다.
+					// 오브젝트 코드를 로드하기 전, 한 char형에 두 글자가 담기도록 packing 과정을 거친다.
 					case 'T':
 						int currentAddr = Integer.parseInt(line.substring(1, 7), 16) + rMgr.getProgStartAddr(currentSection);
 						int codeLength = Integer.parseInt(line.substring(7, 9), 16);
@@ -95,9 +107,10 @@ public class SicLoader
 						
 						rMgr.setMemory(currentAddr, packedOpcode, codeLength);
 						break;
-						
+					
+					// Modification Record인 경우,
+					// 수정을 위한 EXTAB에 수정할 주소, 수정할 부분의 개수, 주소를 더할 것인지 뺄 것인지, 심볼 정보를 저장한다.
 					case 'M':
-						
 						int modifLocation = Integer.parseInt(line.substring(1, 7), 16) + +rMgr.getProgStartAddr(currentSection);
 						int modifSize = Integer.parseInt(line.substring(7, 9), 16);
 						char modifMode = line.charAt(9);
@@ -105,7 +118,9 @@ public class SicLoader
 						
 						rMgr.extabList.putExSymbol(symbol, modifLocation, modifSize, modifMode, currentSection);
 						break;
-						
+					
+					// End Record인 경우,
+					// 컨트롤 섹션을 표시하는 currentSection의 값을 올린다.
 					case 'E':
 						currentSection++;
 						break;
@@ -113,6 +128,8 @@ public class SicLoader
 				}
 			}
 			
+			// EXTAB에 저장되어있는 수정 정보들을 가지고
+			// 메모리에 올라가있는 명령어를 수정한다.
 			for(int i = 0; i < rMgr.extabList.size(); i++)
 			{
 				String symbol = rMgr.extabList.getSymbol(i);
@@ -129,8 +146,6 @@ public class SicLoader
 				rMgr.modifMemory(rMgr.extabList.getaddress(i), packedAddr, packedAddr.length, modifMode);
 			}
 			
-			rMgr.printMemory();
-			rMgr.extabList.print();
 			bufReader.close();
 		}
 		catch (FileNotFoundException e)
@@ -145,6 +160,9 @@ public class SicLoader
 		
 	};
 
+	// 단순 문자 형태의 데이터를 한 char형 안에 두 개씩 묶는 메소드
+	// 예를 들어 1,7이 있다면,
+	// 하나의 char형에 0000 0001 0000 0007이 되도록 생성
 	private char[] packing(char[] inputData)
 	{
 		int length = (inputData.length / 2) + (inputData.length % 2);
