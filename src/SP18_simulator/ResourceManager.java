@@ -50,7 +50,7 @@ public class ResourceManager
 	 * 메모리, 레지스터등 가상 리소스들을 초기화한다.
 	 */
 	public void initializeResource()
-	{
+	{	
 		for (int i = 0; i < register.length; i++)
 			register[i] = 0;
 
@@ -263,6 +263,11 @@ public class ResourceManager
 		return register[regNum];
 
 	}
+	
+	public double getFRegister()
+	{
+		return register_F;
+	}
 
 	/**
 	 * 번호에 해당하는 레지스터에 새로운 값을 입력한다. 레지스터가 들고 있는 값은 문자열이 아님에 주의한다.
@@ -376,6 +381,21 @@ public class ResourceManager
 	public int getProgStartAddr(int sectionNum)
 	{
 		return progStartAddrList.get(sectionNum);
+	}
+	
+	public String getProgName(int sectionNum)
+	{
+		return progNameList.get(sectionNum);
+	}
+	
+	public int getProgLength(int section)
+	{
+		return progLengthList.get(section);
+	}
+	
+	public int getProgCount()
+	{
+		return progNameList.size();
 	}
 
 	public void modifMemory(int locate, char[] data, int num, char modifMode)
